@@ -23,6 +23,9 @@
 #ifndef CGAL_SEGMENT_DELAUNAY_GRAPH_2_H
 #define CGAL_SEGMENT_DELAUNAY_GRAPH_2_H
 
+#include <CGAL/license/Segment_Delaunay_graph_2.h>
+
+
 #include <iostream>
 #include <vector>
 #include <list>
@@ -40,7 +43,7 @@
 #include <CGAL/Triangulation_data_structure_2.h>
 
 #include <CGAL/Segment_Delaunay_graph_2/in_place_edge_list.h>
-#include <CGAL/Segment_Delaunay_graph_2/edge_list.h>
+#include <CGAL/internal/TDS_2/edge_list.h>
 #include <CGAL/Segment_Delaunay_graph_2/Traits_wrapper_2.h>
 #include <CGAL/Segment_Delaunay_graph_2/Constructions_C2.h>
 

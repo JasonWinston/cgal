@@ -43,18 +43,14 @@ namespace CGAL {
 
 class IO {
 public:
-#ifndef CGAL_HEADER_ONLY
-  CGAL_EXPORT static int mode;
-  static int& get_static_mode()
-  { return IO::mode; }
-#else // CGAL_HEADER_ONLY
-  static int& get_static_mode()
+
+  static int get_static_mode()
   {
-    static int mode = std::ios::xalloc();
+    static const int mode = std::ios::xalloc();
     return mode;
   }
-#endif // CGAL_HEADER_ONLY
-    enum Mode {ASCII = 0, PRETTY, BINARY};
+
+  enum Mode {ASCII = 0, PRETTY, BINARY};
 };
 
 template <typename Dummy>
@@ -125,7 +121,7 @@ public:
 };
 
 #if CGAL_FORCE_IFORMAT_DOUBLE || \
-  ( ( _MSC_VER > 1600 ) && (! defined( CGAL_NO_IFORMAT_DOUBLE )) )
+  ( ( _MSC_VER > 1600 ) && ( _MSC_VER < 1910 ) && (! defined( CGAL_NO_IFORMAT_DOUBLE )) )
 template <>
 class Input_rep<double> : public IO_rep_is_specialized {
     double& t;

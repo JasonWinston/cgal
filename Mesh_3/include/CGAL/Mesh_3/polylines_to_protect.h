@@ -21,6 +21,9 @@
 #ifndef CGAL_MESH_3_POLYLINES_TO_PROTECT_H
 #define CGAL_MESH_3_POLYLINES_TO_PROTECT_H
 
+#include <CGAL/license/Mesh_3.h>
+
+
 #include <vector>
 #include <map>
 #include <utility> // std::swap
@@ -91,13 +94,16 @@ struct Angle_tester
       const typename Kernel::Point_3& p1 = g[v1];
       const typename Kernel::Point_3& p2 = g[v2];
 
-      const typename Kernel::Vector_3 e1 = p1 - p;
-      const typename Kernel::Vector_3 e2 = p2 - p;
-      const typename Kernel::FT sc_prod = e1 * e2;
-      if (sc_prod >= 0 ||   // angle < 135 degrees (3*pi/4)
-        (sc_prod < 0 &&
-          CGAL::square(sc_prod) < (e1 * e1) * (e2 * e2) / 2))
+      if(CGAL::angle(p1, p, p2) == CGAL::ACUTE) {
+        // const typename Kernel::Vector_3 e1 = p1 - p;
+        // const typename Kernel::Vector_3 e2 = p2 - p;
+        // std::cerr << "At point " << p << ": the angle is "
+        //           << ( std::acos(e1 * e2
+        //                          / CGAL::sqrt(e1*e1)
+        //                          / CGAL::sqrt(e2*e2))
+        //                * 180 / CGAL_PI ) << std::endl;
         return true;
+      }
     }
     return false;
   }
@@ -199,6 +205,13 @@ polylines_to_protect(const CGAL::Image_3& cgal_image,
     case211 = 0, case121 = 0, // 3 colors
     case31 = 0, case22 = 0, // 2 colors
     case1 = 0; // 1 color
+
+  typename K::Construct_midpoint_3 midpoint =
+    K().construct_midpoint_3_object();
+  typename K::Construct_vector_3 vector =
+    K().construct_vector_3_object();
+  typename K::Construct_translated_point_3 translate =
+    K().construct_translated_point_3_object();
 
   for(int axis = 0; axis < 3; ++axis)
   {
@@ -339,13 +352,13 @@ case_4:
               for(double x = 0.05; x < 0.5; x+= 0.05)
               {
                 const Point_3 inter_left =
-                  p00
-                  +      x                * (p10 - p00)  // x
-                  + ((1.-2.*x)/(2.-3.*x)) * (p01 - p00); // y
+                  translate(p00
+                  ,       x               * vector(p00, p10)   // x
+                  + ((1.-2.*x)/(2.-3.*x)) * vector(p00, p01)); // y
                 const Point_3 inter_right =
-                  p11
-                  +      x                * (p01 - p11)  // x
-                  + ((1.-2.*x)/(2.-3.*x)) * (p10 - p11); // y
+                  translate(p11
+                  ,      x                * vector(p11, p01)   // x
+                  + ((1.-2.*x)/(2.-3.*x)) * vector(p11, p10)); // y
                 v_int_left  = g_manip.get_vertex(inter_left);
                 v_int_right = g_manip.get_vertex(inter_right);
                 g_manip.try_add_edge(old_left,  v_int_left);
@@ -377,7 +390,8 @@ case_4:
               ++case211;
               Point_3 midleft =  midpoint(p00, p01);
               Point_3 midright = midpoint(p10, p11);
-              Point_3 inter = midleft + (2./3)*(midright-midleft);
+              Point_3 inter = translate(midleft
+                              , (2./3) * vector(midleft, midright));
               vertex_descriptor v_inter = g_manip.get_vertex(inter);
               vertex_descriptor right  = g_manip.split(p10, p11, out10, out11);
               vertex_descriptor top    = g_manip.split(p01, p11, out01, out11);
@@ -392,13 +406,13 @@ case_4:
               for(double x = 0.51666; x < 0.66; x+= 0.016666)
               {
                 const Point_3 inter_top =
-                  p00
-                  +      x         * (p10 - p00)  // x
-                  + ((1./x) - 1.)  * (p01 - p00); // y
+                  translate(p00
+                  ,      x         * vector(p00, p10)   // x
+                  + ((1./x) - 1.)  * vector(p00, p01)); // y
                 const Point_3 inter_bottom =
-                  p00
-                  +      x         * (p10 - p00)  // x
-                  + (2.-(1./x))    * (p01 - p00); // y
+                  translate(p00
+                  ,      x         * vector(p00, p10)   // x
+                  + (2.-(1./x))    * vector(p00, p01)); // y
                 v_int_top    = g_manip.get_vertex(inter_top);
                 v_int_bottom = g_manip.get_vertex(inter_bottom);
                 g_manip.try_add_edge(old_top,    v_int_top);
@@ -493,9 +507,9 @@ case_4:
               for(double x = 0.55; x < 1.; x+= 0.05)
               {
                 const Point_3 inter =
-                  p00
-                  +      x         * (p10 - p00)  // x
-                  + (1.-1./(2.*x)) * (p01 - p00); // y
+                  translate(p00
+                  ,      x         * vector(p00, p10)   // x
+                  + (1.-1./(2.*x)) * vector(p00, p01)); // y
                 v_int = g_manip.get_vertex(inter);
                 g_manip.try_add_edge(old, v_int);
                 old = v_int;

@@ -91,10 +91,6 @@ Scene::replaceItem(Scene::Item_id index, CGAL::Three::Scene_item* item, bool emi
     if(index < 0 || index >= m_entries.size())
         return 0;
 
-    if(emit_item_about_to_be_destroyed) {
-    Q_EMIT itemAboutToBeDestroyed(m_entries[index]);
-    }
-
     connect(item, SIGNAL(itemChanged()),
             this, SLOT(itemChanged()));
     CGAL::Three::Scene_group_item* group =
@@ -116,7 +112,12 @@ Scene::replaceItem(Scene::Item_id index, CGAL::Three::Scene_item* item, bool emi
     {
     Q_EMIT updated_bbox();
     }
-  Q_EMIT updated();
+
+    if(emit_item_about_to_be_destroyed) {
+      Q_EMIT itemAboutToBeDestroyed(item);
+    }
+
+    Q_EMIT updated();
     group =
             qobject_cast<CGAL::Three::Scene_group_item*>(m_entries[index]);
     if(group)
@@ -591,9 +592,7 @@ Scene::data(const QModelIndex &index, int role) const
     switch(index.column())
     {
     case ColorColumn:
-        if(role == ::Qt::DisplayRole || role == ::Qt::EditRole)
-            return m_entries.value(id)->color();
-        else if(role == ::Qt::DecorationRole)
+        if(role == ::Qt::DecorationRole)
             return m_entries.value(id)->color();
         break;
     case NameColumn:
@@ -621,7 +620,7 @@ Scene::data(const QModelIndex &index, int role) const
                 return "B";
         }
         else if(role == ::Qt::TextAlignmentRole) {
-            return ::Qt::AlignCenter;
+            return ::Qt::AlignLeft;
         }
         break;
     case VisibleColumn:
@@ -646,7 +645,7 @@ Scene::headerData ( int section, ::Qt::Orientation orientation, int role ) const
                 return tr("Name");
                 break;
             case ColorColumn:
-                return tr("Color");
+                return tr("#");
                 break;
             case RenderingModeColumn:
                 return tr("Mode");
@@ -937,8 +936,8 @@ bool SceneDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
                 QColor color =
                         QColorDialog::getColor(model->data(index).value<QColor>(),
                                                0/*,
-                                                                                                                                 tr("Select color"),
-                                                                                                                                 QColorDialog::ShowAlphaChannel*/);
+                                               tr("Select color"),
+                                               QColorDialog::ShowAlphaChannel*/);
                 if (color.isValid()) {
                     model->setData(index, color );
                 }
@@ -1084,7 +1083,7 @@ Scene::Bbox Scene::bbox() const
     Bbox bbox = Bbox(0,0,0,0,0,0);
     Q_FOREACH(CGAL::Three::Scene_item* item, m_entries)
     {
-        if(item->isFinite() && !item->isEmpty()) {
+        if(item->isFinite() && !item->isEmpty() && item->visible()) {
             if(bbox_initialized) {
 
                 bbox = bbox + item->bbox();
@@ -1158,6 +1157,21 @@ void Scene::printPrimitiveIds(CGAL::Three::Viewer_interface* viewer)
     Scene_print_interface_item* item= dynamic_cast<Scene_print_interface_item*>(it);
     if(item)
       item->printPrimitiveIds(viewer);
+  }
+}
+void Scene::updatePrimitiveIds(CGAL::Three::Viewer_interface* viewer, CGAL::Three::Scene_item* it)
+{
+  if(it)
+  {
+    //Only call printPrimitiveIds if the item is a Scene_print_interface_item
+    Scene_print_interface_item* item= dynamic_cast<Scene_print_interface_item*>(it);
+    if(item)
+    {
+      //As this function works as a toggle, the first call hides the ids and the second one  shows them again,
+      //thereby triggering their re-computation.
+      item->printPrimitiveIds(viewer);
+      item->printPrimitiveIds(viewer);
+    }
   }
 }
 bool Scene::testDisplayId(double x, double y, double z, CGAL::Three::Viewer_interface* viewer)

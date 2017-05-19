@@ -36,6 +36,7 @@ public:
   Viewer(QWidget * parent, bool antialiasing = false);
   ~Viewer();
   bool testDisplayId(double, double, double);
+  void updateIds(CGAL::Three::Scene_item *);
   // overload several QGLViewer virtual functions
   //! Draws the scene.
   void draw();
@@ -68,8 +69,15 @@ public:
   void attribBuffers(int program_name) const;
   //! Implementation of `Viewer_interface::getShaderProgram()`
   QOpenGLShaderProgram* getShaderProgram(int name) const;
+  //!Declares a program names `name`, using `v_shader` as vertex shader and `f_shader` as fragment shader.
+  QOpenGLShaderProgram* declare_program(int name,
+                                        const char* v_shader,
+                                        const char* f_shader)const;
   QPainter* getPainter();
   void saveSnapshot(bool , bool overwrite = false);
+  void setOffset(qglviewer::Vec offset);
+  qglviewer::Vec offset()const;
+  void setSceneBoundingBox(const qglviewer::Vec &min, const qglviewer::Vec &max);
 
 Q_SIGNALS:
   void sendMessage(QString);
@@ -79,6 +87,7 @@ public Q_SLOTS:
   //! If b is true, facets will be ligted from both internal and external sides.
   //! If b is false, only the side that is exposed to the light source will be lighted.
   void setTwoSides(bool b);
+  void SetOrthoProjection( bool b);
   //! If b is true, some items are displayed in a simplified version when moving the camera.
   //! If b is false, items display is never altered, even when moving.
   void setFastDrawing(bool b);

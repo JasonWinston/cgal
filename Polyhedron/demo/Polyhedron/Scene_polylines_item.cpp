@@ -4,6 +4,8 @@
 #include <CGAL/bounding_box.h>
 #include <CGAL/gl.h>
 #include <QMenu>
+#include <QSlider>
+#include <QWidgetAction>
 #include <QAction>
 #include <QInputDialog>
 #include <QApplication>
@@ -14,11 +16,16 @@ struct Scene_polylines_item_private {
 
     Scene_polylines_item_private(Scene_polylines_item *parent) :
         draw_extremities(false),
-        spheres_drawn_radius(0)
+        spheres_drawn_square_radius(0)
     {
+      line_Slider = new QSlider(Qt::Horizontal);
+      line_Slider->setMaximum(2);
+      line_Slider->setMinimum(1);
+      line_Slider->setValue(2);
       item = parent;
       invalidate_stats();
     }
+
     void invalidate_stats()
     {
       nb_vertices = 0;
@@ -47,7 +54,7 @@ struct Scene_polylines_item_private {
     void initializeBuffers(CGAL::Three::Viewer_interface *viewer) const;
     void computeElements() const;
     bool draw_extremities;
-    double spheres_drawn_radius;
+    double spheres_drawn_square_radius;
     Scene_polylines_item *item;
     mutable std::size_t nb_vertices;
     mutable std::size_t nb_edges;
@@ -55,12 +62,16 @@ struct Scene_polylines_item_private {
     mutable double max_length;
     mutable double mean_length;
     mutable bool computed_stats;
+    QSlider* line_Slider;
 };
 
 
 void
 Scene_polylines_item_private::initializeBuffers(CGAL::Three::Viewer_interface *viewer = 0) const
 {
+  float lineWidth[2];
+  viewer->glGetFloatv(GL_LINE_WIDTH_RANGE, lineWidth);
+  line_Slider->setMaximum(lineWidth[1]);
     QOpenGLShaderProgram *program;
    //vao for the lines
     {
@@ -86,6 +97,7 @@ Scene_polylines_item_private::initializeBuffers(CGAL::Three::Viewer_interface *v
 void
 Scene_polylines_item_private::computeElements() const
 {
+    const qglviewer::Vec offset = static_cast<CGAL::Three::Viewer_interface*>(QGLViewer::QGLViewerPool().first())->offset();
     QApplication::setOverrideCursor(Qt::WaitCursor);
     positions_lines.resize(0);
     double mean = 0;
@@ -115,14 +127,14 @@ Scene_polylines_item_private::computeElements() const
                 mean += length;
             }
 
-            positions_lines.push_back(a.x());
-            positions_lines.push_back(a.y());
-            positions_lines.push_back(a.z());
+            positions_lines.push_back(a.x()+offset.x);
+            positions_lines.push_back(a.y()+offset.y);
+            positions_lines.push_back(a.z()+offset.z);
             positions_lines.push_back(1.0);
 
-            positions_lines.push_back(b.x());
-            positions_lines.push_back(b.y());
-            positions_lines.push_back(b.z());
+            positions_lines.push_back(b.x()+offset.x);
+            positions_lines.push_back(b.y()+offset.y);
+            positions_lines.push_back(b.z()+offset.z);
             positions_lines.push_back(1.0);
         }
 
@@ -136,6 +148,9 @@ Scene_polylines_item_private::computeElements() const
 void
 Scene_polylines_item_private::computeSpheres()
 {
+  const qglviewer::Vec v_offset = static_cast<CGAL::Three::Viewer_interface*>(QGLViewer::QGLViewerPool().first())->offset();
+  K::Vector_3 offset(v_offset.x, v_offset.y, v_offset.z);
+
       spheres->clear_spheres();
       QApplication::setOverrideCursor(Qt::WaitCursor);
       // FIRST, count the number of incident cycles and polylines
@@ -226,9 +241,7 @@ Scene_polylines_item_private::computeSpheres()
           }
 
           CGAL::Color c(colors[0], colors[1], colors[2]);
-
-          K::Sphere_3 *sphere = new K::Sphere_3(center, spheres_drawn_radius);
-          spheres->add_sphere(sphere, c);
+          spheres->add_sphere(K::Sphere_3(center+offset, spheres_drawn_square_radius), c);
       }
       spheres->setToolTip(
             QString("<p>Legende of endpoints colors: <ul>"
@@ -256,7 +269,8 @@ Scene_polylines_item::Scene_polylines_item()
 
 Scene_polylines_item::~Scene_polylines_item()
 {
-    delete d;
+  delete d->line_Slider;
+  delete d;
 
 }
 
@@ -360,6 +374,7 @@ Scene_polylines_item::drawEdges(CGAL::Three::Viewer_interface* viewer) const {
         d->initializeBuffers(viewer);
     }
 
+    viewer->glLineWidth(d->line_Slider->value());
     vaos[Scene_polylines_item_private::Edges]->bind();
     attribBuffers(viewer, PROGRAM_NO_SELECTION);
     QOpenGLShaderProgram *program = getShaderProgram(PROGRAM_NO_SELECTION);
@@ -372,7 +387,7 @@ Scene_polylines_item::drawEdges(CGAL::Three::Viewer_interface* viewer) const {
     {
        Scene_group_item::drawEdges(viewer);
     }
-
+    viewer->glLineWidth(1.0f);
 }
 
 void 
@@ -420,6 +435,16 @@ QMenu* Scene_polylines_item::contextMenu()
                 menu->addAction(tr("Smooth polylines"));
         actionSmoothPolylines->setObjectName("actionSmoothPolylines");
         connect(actionSmoothPolylines, SIGNAL(triggered()),this, SLOT(smooth()));
+
+        QMenu *container = new QMenu(tr("Line Width"));
+        QWidgetAction *sliderAction = new QWidgetAction(0);
+        connect(d->line_Slider, &QSlider::valueChanged, this, &Scene_polylines_item::itemChanged);
+
+        sliderAction->setDefaultWidget(d->line_Slider);
+
+        container->addAction(sliderAction);
+        menu->addMenu(container);
+
         menu->setProperty(prop_name, true);
     }
     return menu;
@@ -436,7 +461,7 @@ void Scene_polylines_item::invalidateOpenGLBuffers()
 
 void Scene_polylines_item::change_corner_radii() {
     bool ok = true;
-    double proposed_radius = d->spheres_drawn_radius;
+    double proposed_radius = std::sqrt(d->spheres_drawn_square_radius);
     if(proposed_radius == 0) {
         CGAL::Three::Scene_interface::Bbox b = bbox();
         proposed_radius = (std::max)(b.xmax() - b.xmin(),
@@ -462,7 +487,7 @@ void Scene_polylines_item::change_corner_radii() {
 
 void Scene_polylines_item::change_corner_radii(double r) {
     if(r >= 0) {
-        d->spheres_drawn_radius = r;
+        d->spheres_drawn_square_radius = r*r;
         d->draw_extremities = (r > 0);
         if(r>0 && !d->spheres)
         {

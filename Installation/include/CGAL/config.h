@@ -152,6 +152,12 @@
     defined(BOOST_NO_CXX11_HDR_ARRAY) || BOOST_VERSION < 104000
 #define CGAL_CFG_NO_CPP0X_ARRAY 1
 #endif
+#if defined(BOOST_NO_0X_HDR_UNORDERED_SET) || \
+    defined(BOOST_NO_0X_HDR_UNORDERED_MAP) || \
+    defined(BOOST_NO_CXX11_HDR_UNORDERED_SET) || \
+    defined(BOOST_NO_CXX11_HDR_UNORDERED_MAP)
+#define CGAL_CFG_NO_CPP0X_UNORDERED 1
+#endif
 #if defined(BOOST_NO_DECLTYPE) || \
     defined(BOOST_NO_CXX11_DECLTYPE) || (BOOST_VERSION < 103600)
 #define CGAL_CFG_NO_CPP0X_DECLTYPE 1
@@ -589,5 +595,37 @@ typedef const void * Nullptr_t;   // Anticipate C++0x's std::nullptr_t
 #else
 #define CGAL_ADDITIONAL_VARIANT_FOR_ICL
 #endif
+
+#if !defined CGAL_EIGEN3_ENABLED && \
+    !defined CGAL_EIGEN3_DISABLED && \
+    __has_include(<Eigen/Jacobi>)
+#  define CGAL_EIGEN3_ENABLED 1
+#endif
+
+#define CGAL_STRINGIZE_HELPER(x) #x
+#define CGAL_STRINGIZE(x) CGAL_STRINGIZE_HELPER(x)
+
+/// Macro `CGAL_WARNING`.
+/// Must be used with `#pragma`, this way:
+///
+///     #pragma CGAL_WARNING(This line should trigger a warning)
+///
+/// @{
+#ifdef BOOST_MSVC
+#  define CGAL_WARNING(desc) message(__FILE__ "(" CGAL_STRINGIZE(__LINE__) ") : warning: " desc)
+#else // not BOOST_MSVC
+#  define CGAL_WARNING(desc) message( "warning: " desc)
+#endif // not BOOST_MSVC
+/// @}
+
+/// Macro `CGAL_pragma_warning`.
+#ifdef BOOST_MSVC
+#  define CGAL_pragma_warning(desc) __pragma(CGAL_WARNING(desc))
+#else // not BOOST_MSVC
+#  define CGAL_pragma_warning(desc) _Pragma(CGAL_STRINGIZE(CGAL_WARNING(desc)))
+#endif // not BOOST_MSVC
+/// @}
+#include <CGAL/license/lgpl.h>
+
 
 #endif // CGAL_CONFIG_H

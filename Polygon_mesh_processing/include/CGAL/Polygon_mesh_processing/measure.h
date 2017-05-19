@@ -14,20 +14,20 @@
 //
 // $URL$
 // $Id$
-// 
+//
 //
 // Author(s)     : Andreas Fabri
 
 #ifndef CGAL_POLYGON_MESH_PROCESSING_MEASURE_H
 #define CGAL_POLYGON_MESH_PROCESSING_MEASURE_H
 
+#include <CGAL/license/Polygon_mesh_processing/measure.h>
+
+
 #include <CGAL/boost/graph/iterator.h>
 #include <CGAL/boost/graph/helpers.h>
 #include <CGAL/boost/graph/properties.h>
 #include <boost/graph/graph_traits.hpp>
-#include <boost/mpl/eval_if.hpp>
-#include <boost/mpl/identity.hpp>
-#include <boost/type_traits/is_base_of.hpp>
 
 #include <CGAL/Polygon_mesh_processing/internal/named_function_params.h>
 #include <CGAL/Polygon_mesh_processing/internal/named_params_helper.h>
@@ -40,6 +40,14 @@
 #endif
 
 namespace CGAL {
+
+// workaround for area(face_range,tm) overload
+template<typename CGAL_PMP_NP_TEMPLATE_PARAMETERS, typename NP>
+class GetGeomTraits<CGAL_PMP_NP_CLASS, NP>
+{
+public:
+  struct type{};
+};
 
 namespace Polygon_mesh_processing {
 
@@ -88,7 +96,7 @@ namespace Polygon_mesh_processing {
     using boost::get_param;
 
     typename GetVertexPointMap<PolygonMesh, NamedParameters>::const_type
-    vpm = choose_param(get_param(np, vertex_point),
+    vpm = choose_param(get_param(np, internal_np::vertex_point),
                        get_const_property_map(CGAL::vertex_point, pmesh));
 
     return CGAL::approximate_sqrt(CGAL::squared_distance(get(vpm, source(h, pmesh)),
@@ -235,7 +243,7 @@ namespace Polygon_mesh_processing {
     CGAL_precondition(boost::graph_traits<TriangleMesh>::null_face() != f);
 
     typename GetVertexPointMap<TriangleMesh, CGAL_PMP_NP_CLASS>::const_type
-    vpm = choose_param(get_param(np, vertex_point),
+    vpm = choose_param(get_param(np, internal_np::vertex_point),
                        get_const_property_map(CGAL::vertex_point, tmesh));
 
     typedef typename boost::graph_traits<TriangleMesh>::halfedge_descriptor halfedge_descriptor;
@@ -317,13 +325,7 @@ namespace Polygon_mesh_processing {
   }
 
   template<typename FaceRange, typename TriangleMesh>
-  typename CGAL::Kernel_traits<
-    typename boost::mpl::eval_if<
-      boost::is_base_of<CGAL::named_params_base, TriangleMesh>,
-      boost::mpl::identity<TriangleMesh>,
-      property_map_value<TriangleMesh, CGAL::vertex_point_t>
-    >::type
-  >::Kernel::FT
+  typename GetGeomTraits<TriangleMesh>::type::FT
   area(FaceRange face_range, const TriangleMesh& tmesh)
   {
     return area(face_range, tmesh,
@@ -413,39 +415,43 @@ namespace Polygon_mesh_processing {
 #else
   typename GetGeomTraits<TriangleMesh, CGAL_PMP_NP_CLASS>::type::FT
 #endif
-  volume(const TriangleMesh& tmesh, const CGAL_PMP_NP_CLASS& np)
+volume(const TriangleMesh& tmesh, const CGAL_PMP_NP_CLASS& np)
+{
+  CGAL_assertion(is_triangle_mesh(tmesh));
+  CGAL_assertion(is_closed(tmesh));
+
+  using boost::choose_param;
+  using boost::get_param;
+
+  typename GetVertexPointMap<TriangleMesh, CGAL_PMP_NP_CLASS>::const_type
+    vpm = choose_param(get_param(np, internal_np::vertex_point),
+                       get_const_property_map(CGAL::vertex_point, tmesh));
+  typename GetGeomTraits<TriangleMesh, CGAL_PMP_NP_CLASS>::type::Point_3
+    origin(0, 0, 0);
+
+  typedef typename boost::graph_traits<TriangleMesh>::face_descriptor face_descriptor;
+
+  typename GetGeomTraits<TriangleMesh, CGAL_PMP_NP_CLASS>::type::FT volume = 0.;
+  typename CGAL::Kernel_traits<typename property_map_value<TriangleMesh,
+    CGAL::vertex_point_t>::type>::Kernel::Compute_volume_3 cv3;
+
+  BOOST_FOREACH(face_descriptor f, faces(tmesh))
   {
-    CGAL_assertion(is_triangle_mesh(tmesh));
-    CGAL_assertion(is_closed(tmesh));
-
-    using boost::choose_param;
-    using boost::get_param;
-
-    typename GetVertexPointMap<TriangleMesh, CGAL_PMP_NP_CLASS>::const_type
-      vpm = choose_param(get_param(np, vertex_point),
-                         get_const_property_map(CGAL::vertex_point, tmesh));
-    typename GetGeomTraits<TriangleMesh, CGAL_PMP_NP_CLASS>::type::Point_3
-      origin(0, 0, 0);
-
-    typedef typename boost::graph_traits<TriangleMesh>::face_descriptor face_descriptor;
-
-    typename GetGeomTraits<TriangleMesh, CGAL_PMP_NP_CLASS>::type::FT volume = 0.;
-    BOOST_FOREACH(face_descriptor f, faces(tmesh))
-    {
-      volume += CGAL::volume(origin,
-        get(vpm, target(halfedge(f, tmesh), tmesh)),
-        get(vpm, target(next(halfedge(f, tmesh), tmesh), tmesh)),
-        get(vpm, target(prev(halfedge(f, tmesh), tmesh), tmesh)));
-      exact(volume);
-    }
-    return volume;
+    volume += cv3(origin,
+      get(vpm, target(halfedge(f, tmesh), tmesh)),
+      get(vpm, target(next(halfedge(f, tmesh), tmesh), tmesh)),
+      get(vpm, target(prev(halfedge(f, tmesh), tmesh), tmesh)));
+    exact(volume);
   }
+  return volume;
+}
 
   template<typename TriangleMesh>
   typename CGAL::Kernel_traits<typename property_map_value<TriangleMesh,
     CGAL::vertex_point_t>::type>::Kernel::FT
   volume(const TriangleMesh& tmesh)
   {
+
     return volume(tmesh,
       CGAL::Polygon_mesh_processing::parameters::all_default());
   }

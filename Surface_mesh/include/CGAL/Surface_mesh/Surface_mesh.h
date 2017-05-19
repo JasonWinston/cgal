@@ -19,6 +19,9 @@
 #ifndef CGAL_SURFACE_MESH_H
 #define CGAL_SURFACE_MESH_H
 
+#include <CGAL/license/Surface_mesh.h>
+
+
 #include <iterator>
 #include <algorithm>
 #include <utility>
@@ -45,6 +48,7 @@
 #include <CGAL/boost/graph/iterator.h>
 #include <CGAL/boost/graph/Euler_operations.h>
 #include <CGAL/IO/File_scanner_OFF.h>
+#include <CGAL/Handle_hash_function.h>
 
 namespace CGAL {
 
@@ -282,27 +286,17 @@ public:
 
 #ifndef DOXYGEN_RUNNING
   template <class I, class T>
-  struct Property_map : Properties::Property_map<I, T>
+  struct Property_map : Properties::Property_map_base<I, T, Property_map<I, T> >
   {
-    typedef Properties::Property_map<I, T> Base;
+    typedef Properties::Property_map_base<I, T, Property_map<I, T> > Base;
     typedef typename Base::reference reference;
     Property_map() : Base() {}
     Property_map(const Base& pm): Base(pm) {}
+  };
 
-    template <class K>
-    friend
-    reference
-    get(const Property_map<I, T>& pa, const K& k) {
-      return pa[k];
-    }
-
-    template <class K, class V>
-    friend
-    void
-    put(const Property_map<I, T>& pa, K k, const V& v)
-    {
-      pa[k] = v;
-    }
+  template <typename Key, typename T>
+  struct Get_property_map {
+    typedef Property_map<Key, T> type;
   };
 #endif // DOXYGEN_RUNNING
 
@@ -334,15 +328,13 @@ public:
     {
     public:
         /// %Default constructor.
-        Vertex_index() : SM_Index<Vertex_index>(-1) {}
+        Vertex_index(){}
 
-        explicit Vertex_index(size_type _idx) : SM_Index<Vertex_index>(_idx) {}
+        Vertex_index(size_type _idx){}
 
         /// prints the index and a short identification string to an ostream.
         friend std::ostream& operator<<(std::ostream& os, typename Surface_mesh::Vertex_index const& v)
-        {
-          return (os << 'v' << (size_type)v );
-        }
+        {}
     };
 #else
   typedef SM_Vertex_index Vertex_index;
@@ -359,14 +351,13 @@ public:
     {
     public:
         /// %Default constructor
-        Halfedge_index() : SM_Index<Halfedge_index>(-1) {}
+        Halfedge_index(){}
 
-        explicit Halfedge_index(size_type _idx) : SM_Index<Halfedge_index>(_idx) {}
+        Halfedge_index(size_type _idx){}
 
         /// prints the index and a short identification string to an ostream.
         friend std::ostream& operator<<(std::ostream& os, typename Surface_mesh::Halfedge_index const& h)
         {
-          return (os << 'h' << (size_type)h );
         }
 
     };
@@ -384,15 +375,13 @@ public:
     {
     public:
         /// %Default constructor
-        Face_index() : SM_Index<Face_index>(-1) {}
+        Face_index(){}
 
-        explicit Face_index(size_type _idx) : SM_Index<Face_index>(_idx) {}
+        Face_index(size_type _idx){}
 
         /// prints the index and a short identification string to an ostream.
         friend std::ostream& operator<<(std::ostream& os, typename Surface_mesh::Face_index const& f)
-        {
-          return (os << 'f' << (size_type)f );
-        }
+        {}
     };
 #else
   typedef SM_Face_index Face_index;
@@ -408,63 +397,16 @@ public:
     {
     public:
         /// %Default constructor
-        Edge_index() : halfedge_(-1) { }
+        Edge_index(){}
 
-        Edge_index(size_type idx) : halfedge_(idx * 2) { }
+        Edge_index(size_type idx){}
 
         /// constructs an `Edge_index` from a halfedge.
-        Edge_index(Halfedge_index he) : halfedge_(he) { }
-        /// @cond CGAL_DOCUMENT_INTERNALS
-        /// returns the internal halfedge.
-        Halfedge_index halfedge() const { return halfedge_; }
-
-        /// returns the underlying index of this index.
-        operator size_type() const { return (size_type)halfedge_ / 2; }
-
-        /// resets index to be invalid (index=-1)
-        void reset() { halfedge_.reset(); }
-
-        /// returns whether the index is valid, i.e., the index is not equal to -1.
-        bool is_valid() const { return halfedge_.is_valid(); }
-
-        /// Are two indices equal?
-        bool operator==(const Edge_index& other) const { return (size_type)(*this) == (size_type)other; }
-
-        /// Are two indices different?
-        bool operator!=(const Edge_index& other) const { return (size_type)(*this) != (size_type)other; }
-
-        /// compares by index.
-        bool operator<(const Edge_index& other) const { return (size_type)(*this) < (size_type)other;}
-
-        /// decrements the internal index. This operation does not
-        /// guarantee that the index is valid or undeleted after the
-        /// decrement.
-        Edge_index& operator--() { halfedge_ = Halfedge_index((size_type)halfedge_ - 2); return *this; }
-
-        /// increments the internal index. This operation does not
-        /// guarantee that the index is valid or undeleted after the
-        /// increment.
-        Edge_index& operator++() { halfedge_ = Halfedge_index((size_type)halfedge_ + 2); return *this; }
-
-        /// decrements internal index. This operation does not
-        /// guarantee that the index is valid or undeleted after the
-        /// decrement.
-        Edge_index operator--(int) { Edge_index tmp(*this); halfedge_ = Halfedge_index((size_type)halfedge_ - 2); return tmp; }
-
-        /// increments internal index. This operation does not
-        /// guarantee that the index is valid or undeleted after the
-        /// increment.
-        Edge_index operator++(int) { Edge_index tmp(*this); halfedge_ = Halfedge_index((size_type)halfedge_ + 2); return tmp; }
-
-        /// @endcond 
+        Edge_index(Halfedge_index he){}
 
         /// prints the index and a short identification string to an ostream.
         friend std::ostream& operator<<(std::ostream& os, typename Surface_mesh::Edge_index const& e)
-        {
-          return (os << 'e' << (size_type)e << " on " << e.halfedge());
-        }
-    private:
-        Halfedge_index halfedge_;
+        {}
     };
 #else
   typedef SM_Edge_index Edge_index;
@@ -1551,7 +1493,7 @@ public:
         hconn_[h].prev_halfedge_ = nh;
       }
     }
-    /// @endcond  
+    /// @endcond
 
     /// sets the next halfedge of `h` within the face to `nh` and
     /// the previous halfedge of `nh` to `h`.
@@ -1689,7 +1631,7 @@ public:
     ///
     ///  A halfedge, or edge is on the border of a surface mesh
     /// if it is incident to a `null_face()`.  A vertex is on a border
-    /// if it is incident to a border halfedge. While for a halfedge and
+    /// if it is isolated or incident to a border halfedge. While for a halfedge and
     /// edge this is a constant time operation, for a vertex it means
     /// to look at all incident halfedges.  If algorithms operating on a 
     /// surface mesh maintain that the halfedge associated to a border vertex is
@@ -1703,13 +1645,13 @@ public:
     /// With the default value for
     /// `check_all_incident_halfedges` the function iteratates over the incident halfedges.
     /// With `check_all_incident_halfedges == false` the function returns `true`, if the incident
-    /// halfedge associated to vertex `v` is a border halfedge.
+    /// halfedge associated to vertex `v` is a border halfedge, or if the vertex is isolated.
     /// \cgalAdvancedEnd
   bool is_border(Vertex_index v, bool check_all_incident_halfedges = true) const
     {
         Halfedge_index h(halfedge(v));
         if (h == null_halfedge()){
-          return false;
+          return true;
         }
         if(check_all_incident_halfedges){
           Halfedge_around_target_circulator hatc(h,*this), done(hatc);
@@ -1720,7 +1662,7 @@ public:
           }while(++hatc != done);
           return false;
         }
-        return (!(is_valid(h) && is_border(h)));
+        return is_border(h);
     }
 
     /// returns whether `h` is a border halfege, that is if its incident face is `sm.null_face()`.
@@ -1804,28 +1746,32 @@ private: //--------------------------------------------------- property handling
   struct Property_selector<typename CGAL::Surface_mesh<P>::Vertex_index, dummy> {
     CGAL::Surface_mesh<P>* m_;
     Property_selector(CGAL::Surface_mesh<P>* m) : m_(m) {}
-    Properties::Property_container<typename CGAL::Surface_mesh<P>::Vertex_index>&
+    Properties::Property_container<Self,
+                                   typename CGAL::Surface_mesh<P>::Vertex_index>&
     operator()() { return m_->vprops_; }
   };
   template<bool dummy>
   struct Property_selector<typename CGAL::Surface_mesh<P>::Halfedge_index, dummy> {
     CGAL::Surface_mesh<P>* m_;
     Property_selector(CGAL::Surface_mesh<P>* m) : m_(m) {}
-    Properties::Property_container<typename CGAL::Surface_mesh<P>::Halfedge_index>&
+    Properties::Property_container<Self,
+                                   typename CGAL::Surface_mesh<P>::Halfedge_index>&
     operator()() { return m_->hprops_; }
   };
   template<bool dummy>
   struct Property_selector<typename CGAL::Surface_mesh<P>::Edge_index, dummy> {
     CGAL::Surface_mesh<P>* m_;
     Property_selector(CGAL::Surface_mesh<P>* m) : m_(m) {}
-    Properties::Property_container<typename CGAL::Surface_mesh<P>::Edge_index>&
+    Properties::Property_container<Self,
+                                   typename CGAL::Surface_mesh<P>::Edge_index>&
     operator()() { return m_->eprops_; }
   };
   template<bool dummy>
   struct Property_selector<typename CGAL::Surface_mesh<P>::Face_index, dummy> {
     CGAL::Surface_mesh<P>* m_;
     Property_selector(CGAL::Surface_mesh<P>* m) : m_(m) {}
-    Properties::Property_container<typename CGAL::Surface_mesh<P>::Face_index>&
+    Properties::Property_container<Self,
+                                   typename CGAL::Surface_mesh<P>::Face_index>&
     operator()() { return m_->fprops_; }
   };
 
@@ -1859,7 +1805,7 @@ private: //--------------------------------------------------- property handling
 
   
     template<class I, class T>
-    std::pair<Properties::Property_map<I, T>, bool>
+    std::pair<Property_map<I, T>, bool>
     add_property_map(const std::string& name, const T t=T()) {
       return Property_selector<I>(this)().template add<T>(name, t);
     }
@@ -1870,7 +1816,7 @@ private: //--------------------------------------------------- property handling
     /// In case it does not exist the Boolean is `false` and the behavior of
     /// the property map is undefined.
     template <class I, class T>
-    std::pair<Properties::Property_map<I, T>,bool> property_map(const std::string& name) const
+    std::pair<Property_map<I, T>,bool> property_map(const std::string& name) const
     {
       return Property_selector<I>(const_cast<Surface_mesh*>(this))().template get<T>(name);
     }
@@ -1879,9 +1825,9 @@ private: //--------------------------------------------------- property handling
     /// removes property map `p`. The memory allocated for that property map is
     /// freed.
     template<class I, class T>
-    void remove_property_map(Properties::Property_map<I, T>& p)
+    void remove_property_map(Property_map<I, T>& p)
     {
-      (Property_selector<I>(this)()).remove(p);
+      (Property_selector<I>(this)()).template remove<T>(p);
     }
 
     /// @cond CGAL_DOCUMENT_INTERNALS
@@ -1907,10 +1853,10 @@ private: //--------------------------------------------------- property handling
     }
 
     /// returns the property for the string "v:point".
-    Properties::Property_map<Vertex_index, Point>
+    Property_map<Vertex_index, Point>
     points() const { return vpoint_; }
 
-  Properties::Property_map<Vertex_index, Point>&
+    Property_map<Vertex_index, Point>&
     points() { return vpoint_; }
 
     /// returns the point associated to vertex `v`.
@@ -1965,20 +1911,20 @@ private: //--------------------------------------------------- helper functions
     void adjust_incoming_halfedge(Vertex_index v);
 
 private: //------------------------------------------------------- private data
-    Properties::Property_container<Vertex_index> vprops_;
-    Properties::Property_container<Halfedge_index> hprops_;
-    Properties::Property_container<Edge_index> eprops_;
-    Properties::Property_container<Face_index> fprops_;
+    Properties::Property_container<Self, Vertex_index> vprops_;
+    Properties::Property_container<Self, Halfedge_index> hprops_;
+    Properties::Property_container<Self, Edge_index> eprops_;
+    Properties::Property_container<Self, Face_index> fprops_;
 
-    Properties::Property_map<Vertex_index, Vertex_connectivity>      vconn_;
-    Properties::Property_map<Halfedge_index, Halfedge_connectivity>  hconn_;
-    Properties::Property_map<Face_index, Face_connectivity>          fconn_;
+    Property_map<Vertex_index, Vertex_connectivity>      vconn_;
+    Property_map<Halfedge_index, Halfedge_connectivity>  hconn_;
+    Property_map<Face_index, Face_connectivity>          fconn_;
 
-    Properties::Property_map<Vertex_index, bool>  vremoved_;
-    Properties::Property_map<Edge_index, bool>    eremoved_;
-    Properties::Property_map<Face_index, bool>    fremoved_;
+    Property_map<Vertex_index, bool>  vremoved_;
+    Property_map<Edge_index, bool>    eremoved_;
+    Property_map<Face_index, bool>    fremoved_;
 
-    Properties::Property_map<Vertex_index, Point>   vpoint_;
+    Property_map<Vertex_index, Point>   vpoint_;
 
     size_type removed_vertices_;
     size_type removed_edges_;
@@ -2084,8 +2030,8 @@ private: //------------------------------------------------------- private data
     sm.reserve(n,2*f,e);
     P p;
     Vector_3 v;
-    typename Properties::template Property_map<Vertex_index,CGAL::Color> vcolor;
-    typename Properties::template Property_map<Vertex_index,Vector_3> vnormal;
+    typename Mesh::template Property_map<Vertex_index,CGAL::Color> vcolor;
+    typename Mesh::template Property_map<Vertex_index,Vector_3> vnormal;
     bool vcolored = false, v_has_normals = false;
 
     if((off == "NOFF") || (off == "CNOFF")){
@@ -2127,7 +2073,7 @@ private: //------------------------------------------------------- private data
     std::size_t d;
 
     bool fcolored = false;
-    typename Properties::template Property_map<Face_index,CGAL::Color> fcolor;
+    typename Mesh::template Property_map<Face_index,CGAL::Color> fcolor;
 
     for(int i=0; i < f; i++){
       is >> sm_skip_comments;
@@ -2458,9 +2404,9 @@ collect_garbage()
 
 
     // setup index mapping%
-    Properties::Property_map<Vertex_index, Vertex_index>      vmap = add_property_map<Vertex_index, Vertex_index>("v:garbage-collection").first;
-    Properties::Property_map<Halfedge_index, Halfedge_index>  hmap = add_property_map<Halfedge_index, Halfedge_index>("h:garbage-collection").first;
-    Properties::Property_map<Face_index, Face_index>          fmap = add_property_map<Face_index, Face_index>("f:garbage-collection").first;
+    Property_map<Vertex_index, Vertex_index>      vmap = add_property_map<Vertex_index, Vertex_index>("v:garbage-collection").first;
+    Property_map<Halfedge_index, Halfedge_index>  hmap = add_property_map<Halfedge_index, Halfedge_index>("h:garbage-collection").first;
+    Property_map<Face_index, Face_index>          fmap = add_property_map<Face_index, Face_index>("f:garbage-collection").first;
     for (i=0; i<nV; ++i)
         vmap[Vertex_index(i)] = Vertex_index(i);
     for (i=0; i<nH; ++i)
@@ -2578,7 +2524,45 @@ collect_garbage()
     garbage_ = false;
 }
 
+namespace internal{
+  namespace handle {
+    template <>
+    struct Hash_functor<SM_Vertex_index>{
+      std::size_t
+      operator()(const SM_Vertex_index i)
+      {
+        return i;
+      }
+    };
 
+    template <>
+    struct Hash_functor<SM_Halfedge_index>{
+      std::size_t
+      operator()(const SM_Halfedge_index i)
+      {
+        return i;
+      }
+    };
+
+    template <>
+    struct Hash_functor<SM_Edge_index>{
+      std::size_t
+      operator()(const SM_Edge_index i)
+      {
+        return i;
+      }
+    };
+
+    template <>
+    struct Hash_functor<SM_Face_index>{
+      std::size_t
+      operator()(const SM_Face_index i)
+      {
+        return i;
+      }
+    };
+  }
+}
 
 } // CGAL
 

@@ -22,6 +22,9 @@
 #ifndef CGAL_TRAPEZOIDAL_DECOMPOSITION_FUNCTIONS_H
 #define CGAL_TRAPEZOIDAL_DECOMPOSITION_FUNCTIONS_H
 
+#include <CGAL/license/Arrangement_on_surface_2.h>
+
+
 /*! \file
 * Member-function definitions for the Trapezoidal_decomposition_2<Traits>
 * class.
@@ -1527,7 +1530,7 @@ Trapezoidal_decomposition_2<Td_traits>
 
 template <class Td_traits>
 bool Trapezoidal_decomposition_2<Td_traits>
-::is_last_edge(Halfedge_const_handle he , Td_map_item& vtx_item)
+::is_last_edge(Halfedge_const_handle /* he */ , Td_map_item& vtx_item)
 {
   CGAL_precondition(traits->is_td_vertex(vtx_item));
   CGAL_precondition(traits->is_active(vtx_item));
@@ -1537,9 +1540,7 @@ bool Trapezoidal_decomposition_2<Td_traits>
   typename Arrangement_on_surface_2::Halfedge_around_vertex_const_circulator first, second;
   first = second = v->incident_halfedges();
   ++second;
-  if (he->source() == v)
-    he = he->twin();
-  CGAL_assertion(he == first);
+
   if (second == first) //if he is the only halfedge around v -> return true
     return true;
   return false;

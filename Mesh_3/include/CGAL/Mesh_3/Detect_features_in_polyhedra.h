@@ -22,8 +22,12 @@
 #ifndef CGAL_MESH_3_DETECT_FEATURES_IN_POLYHEDRA_H
 #define CGAL_MESH_3_DETECT_FEATURES_IN_POLYHEDRA_H
 
+#include <CGAL/license/Mesh_3.h>
+
+
 #include <CGAL/Kernel/global_functions_3.h>
 #include <CGAL/Mesh_3/Detect_features_in_polyhedra_fwd.h>
+#include <CGAL/Compare_handles_with_or_without_timestamps.h>
 #include <set>
 
 namespace CGAL {
@@ -54,9 +58,10 @@ public:
   typedef typename Polyhedron::Halfedge         Halfedge;
   typedef typename Polyhedron::Facet            Facet;
   typedef typename Facet::Patch_id              Patch_id;
+  typedef CGAL::Compare_handles_with_or_without_timestamps Compare_handles;
   
-  typedef std::set<Facet_handle>      Facet_handle_set;
-  typedef std::set<Halfedge_handle>   He_handle_set;
+  typedef std::set<Facet_handle, Compare_handles> Facet_handle_set;
+  typedef std::set<Halfedge_handle, Compare_handles> He_handle_set;
   
 public:
   Detect_features_in_polyhedra() : current_surface_index_(1) {}
@@ -65,6 +70,10 @@ public:
                           FT angle_in_deg = FT(60)) const;
   void detect_surface_patches(Polyhedron& polyhedron);
   void detect_vertices_incident_patches(Polyhedron& p);
+
+  int maximal_surface_patch_index() const {
+    return current_surface_index_ - 1;
+  }
   
 private:
   Vector_3 facet_normal(const Facet_handle& f) const;
@@ -103,7 +112,9 @@ detect_sharp_edges(Polyhedron& polyhedron, FT angle_in_deg) const
   for(typename Polyhedron::Halfedge_iterator he = polyhedron.edges_begin(),
       end = polyhedron.edges_end() ; he != end ; ++he)
   {
-    if(he->is_border() || angle_in_deg == FT() || is_sharp(he,cos_angle))
+    if(he->is_border() || angle_in_deg == FT() ||
+       (angle_in_deg != FT(180) && is_sharp(he,cos_angle))
+       )
     {
       he->set_feature_edge(true);
       he->opposite()->set_feature_edge(true);

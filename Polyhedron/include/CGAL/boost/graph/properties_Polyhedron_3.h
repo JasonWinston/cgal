@@ -20,6 +20,9 @@
 #ifndef CGAL_BOOST_GRAPH_PROPERTIES_POLYHEDRON_3_H
 #define CGAL_BOOST_GRAPH_PROPERTIES_POLYHEDRON_3_H
 
+#include <CGAL/license/Polyhedron.h>
+
+
 #include <CGAL/boost/graph/properties.h>
 #include <CGAL/boost/graph/graph_traits_Polyhedron_3.h>
 #include <CGAL/Unique_hash_map.h>
@@ -36,12 +39,12 @@ namespace internal {
 
 template<class Handle>
 class Polyhedron_index_map_external
-  : public boost::put_get_helper<std::size_t, Polyhedron_index_map_external<Handle> >
+  : public boost::put_get_helper<std::size_t&, Polyhedron_index_map_external<Handle> >
 {
 public:
-  typedef boost::readable_property_map_tag category;
+  typedef boost::lvalue_property_map_tag   category;
   typedef std::size_t                      value_type;
-  typedef std::size_t                      reference;
+  typedef std::size_t&                     reference;
   typedef Handle                           key_type;
 
 private:

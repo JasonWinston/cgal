@@ -24,6 +24,9 @@
 #ifndef CGAL_CIRCULAR_KERNEL_2_INTERSECTION_TRAITS_H
 #define CGAL_CIRCULAR_KERNEL_2_INTERSECTION_TRAITS_H
 
+#include <CGAL/license/Circular_kernel_2.h>
+
+
 //this include is needed to know the value of CGAL_INTERSECTION_VERSION
 #include <CGAL/Intersection_traits.h>
 
@@ -176,6 +179,12 @@ template<typename CK>
 struct CK2_Intersection_traits<CK, typename CK::Circle_2, typename CK::Line_2> :
     public CK2_Intersection_traits<CK, typename CK::Line_2, typename CK::Circle_2>
 {};
+
+template<typename CK>
+struct CK2_Intersection_traits<CK, typename CK::Line_2, typename CK::Line_2>
+{
+  typedef typename Intersection_traits<CK, typename CK::Line_2, typename CK::Line_2>::result_type type;
+};
 
 } //end of namespace CGAL
 

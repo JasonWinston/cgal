@@ -30,6 +30,11 @@ target_link_libraries(stl_plugin scene_polyhedron_item scene_polygon_soup_item)
 polyhedron_demo_plugin(surface_mesh_io_plugin Surface_mesh_io_plugin)
 target_link_libraries(surface_mesh_io_plugin scene_surface_mesh_item scene_polygon_soup_item)
 
+polyhedron_demo_plugin(surf_io_plugin Surf_io_plugin)
+target_link_libraries(surf_io_plugin scene_polyhedron_item)
+
+polyhedron_demo_plugin(surf_to_sm_io_plugin Surf_to_sm_io_plugin)
+target_link_libraries(surf_to_sm_io_plugin scene_surface_mesh_item)
 
 
 find_package(VTK QUIET COMPONENTS

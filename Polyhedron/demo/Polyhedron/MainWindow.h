@@ -5,9 +5,10 @@
 
 #include <QtOpenGL/qgl.h>
 #include <CGAL/Qt/DemosMainWindow.h>
-#ifdef QT_SCRIPT_LIB
-#  include  <QScriptEngine>
-#endif
+
+#include <QScriptEngine>
+#include <QScriptable>
+
 
 #include <QVector>
 #include <QList>
@@ -45,7 +46,8 @@ namespace Ui {
 
 class MAINWINDOW_EXPORT MainWindow : 
   public CGAL::Qt::DemosMainWindow,
-  public Messages_interface
+  public Messages_interface,
+  protected QScriptable
 {
   Q_OBJECT
   Q_INTERFACES(Messages_interface)
@@ -86,6 +88,7 @@ public Q_SLOTS:
   void setExpanded(QModelIndex);
   void setCollapsed(QModelIndex);
   bool file_matches_filter(const QString& filters, const QString& filename);
+  void reset_default_loaders();
   //!Prints a dialog containing statistics on the selected polyhedrons.
   void statisticsOnItem();
   /*! Open a file with a given loader, and return true if it was successful.
@@ -208,6 +211,8 @@ public Q_SLOTS:
    */
   void enableScriptDebugger(bool = true);
 
+  /// This slot is used to test exception handling in Qt Scripts.
+  void throw_exception();
 protected Q_SLOTS:
 
    //!Gets the new selected item(s) from the sceneView and updates the scene
@@ -315,6 +320,9 @@ protected Q_SLOTS:
   void filterOperations();
   //!Updates the bounding box and moves the camera to fits the scene.
   void on_actionRecenterScene_triggered();
+
+  //!Resizes the header of the scene view
+  void resetHeader();
 protected:
   QList<QAction*> createSubMenus(QList<QAction*>);
   /*! For each objects in the sceneView, loads the associated plugins.
@@ -365,11 +373,13 @@ private:
   QVector<PluginNamePair > plugins;
   //!Called when "Add new group" in the file menu is triggered.
   QAction* actionAddToGroup;
+  QAction* actionResetDefaultLoaders;
   void print_message(QString message) { messages->information(message); }
   Messages_interface* messages;
 
   QDialog *statistics_dlg;
   Ui::Statistics_on_item_dialog* statistics_ui;
+  void insertActionBeforeLoadPlugin(QMenu*, QAction *actionToInsert);
 
 #ifdef QT_SCRIPT_LIB
   QScriptEngine* script_engine;

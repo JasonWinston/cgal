@@ -23,6 +23,9 @@
 #ifndef CGAL_CIRCLE_SEGMENT_2_H
 #define CGAL_CIRCLE_SEGMENT_2_H
 
+#include <CGAL/license/Arrangement_on_surface_2.h>
+
+
 /*! \file
  * Header file for the _Circle_segment_2<Kernel, Filter> class.
  */
@@ -398,7 +401,7 @@ public:
     NT          y3 = p3.y();
 
 
-    // Make sure that the source and the taget are not the same.
+    // Make sure that the source and the target are not the same.
     CGAL_precondition (Kernel().compare_xy_2_object() (p1, p3) != EQUAL);
 
     // Compute the lines: A1*x + B1*y + C1 = 0,
@@ -529,7 +532,7 @@ public:
 
   /*!
    * Get the vertical tangency points the arc contains.
-   * \param vpts Output: The vertical tagnecy points.
+   * \param vpts Output: The vertical tangency points.
    * \pre The curve is circular.
    * \return The number of points (0, 1, or 2).
    */
@@ -590,8 +593,8 @@ private:
 
   /*!
    * Get the vertical tangency points the arc contains, assuming it is
-   * counterclockwise oreinted.
-   * \param vpts Output: The vertical tagnecy points.
+   * counterclockwise oriented.
+   * \param vpts Output: The vertical tangency points.
    * \return The number of points (0, 1, or 2).
    */
   unsigned int _ccw_vertical_tangency_points (const Point_2& src,

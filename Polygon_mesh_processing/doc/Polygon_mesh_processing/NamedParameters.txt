@@ -17,6 +17,8 @@ That is, you give each parameter a name by wrapping it into a function whose nam
 When you use named parameters, the ordering is irrelevant, so `f(name(n).age(a).gender(g))` is equivalent to `f(age(a).gender(g).name(n))`, and you can just omit any named parameter that has a default value.
 
 The sequence of named parameters should start with `CGAL::Polygon_mesh_processing::parameters::`.
+`#CGAL::Polygon_mesh_processing::parameters::all_default()` can be used to indicate
+that default values of optional named parameters must be used.
 
 
 \cgalHeading{Example}
@@ -24,13 +26,12 @@ The sequence of named parameters should start with `CGAL::Polygon_mesh_processin
 See below a sample call of a function that uses the optional BGL named parameters.
 
 \code
-/* pmesh : polygon mesh with patches to be refined
-   faces : the range of faces defining the patches to refine
-   faces_out : output iterator into which descriptors of new faces are put
-   vertices_out : output iterator into which descriptors of new vertices are put
-   vertex_point_map : the property map with the points associated to the vertices of `pmesh`
-   density_control_factor : factor to control density of the output mesh
-*/
+// pmesh : polygon mesh with patches to be refined
+// faces : the range of faces defining the patches to refine
+// faces_out : output iterator into which descriptors of new faces are put
+// vertices_out : output iterator into which descriptors of new vertices are put
+// vertex_point_map : the property map with the points associated to the vertices of `pmesh`
+// density_control_factor : factor to control density of the output mesh
 refine(pmesh
        , faces
        , faces_out
@@ -152,8 +153,10 @@ a default property map where no edge is constrained is provided.
 \cgalNPEnd
 
 \cgalNPBegin{ vertex_is_constrained_map } \anchor PMP_vertex_is_constrained_map
-the property map containing information about vertices of the input polygon mesh being constrained or not.\n
-\b Type : a class model of `ReadablePropertyMap` with
+the property map containing information about vertices of the input polygon mesh being constrained or not.
+Constrained vertices may be replaced by new vertices, but the number and location
+of vertices remain unchanged.\n
+\b Type : a class model of `ReadWritePropertyMap` with
 `boost::graph_traits<PolygonMesh>::%vertex_descriptor` as key type and
 `bool` as value type. It should be default constructible.\n
 \b Default : if this parameter is omitted,
@@ -208,7 +211,113 @@ set to `true`, this parameter is ignored.
 \n
 \b Type : `bool` \n
 \b Default value is `true`
+\cgalNPEnd
 
+\cgalNPBegin{use_random_uniform_sampling} \anchor PMP_use_random_uniform_sampling
+Parameter used in `sample_triangle_mesh()` to indicate if points should be picked
+in a random uniform way.
+\n
+\b Type : `bool` \n
+\b Default value is `true`
+\cgalNPEnd
+
+\cgalNPBegin{use_grid_sampling} \anchor PMP_use_grid_sampling
+Parameter used in `sample_triangle_mesh()` to indicate if points should be picked
+in on a grid in each face.
+\n
+\b Type : `bool` \n
+\b Default value is `false`
+\cgalNPEnd
+
+\cgalNPBegin{use_monte_carlo_sampling} \anchor PMP_use_monte_carlo_sampling
+Parameter used in `sample_triangle_mesh()` to indicate if points should be picked
+using a Monte-Carlo approach.
+\n
+\b Type : `bool` \n
+\b Default value is `false`
+\cgalNPEnd
+
+\cgalNPBegin{sample_edges} \anchor PMP_sample_edges
+Parameter used in `sample_triangle_mesh()` to indicate if a dedicated sampling
+of edges should be done.
+\n
+\b Type : `bool` \n
+\b Default value is `true`
+\cgalNPEnd
+
+\cgalNPBegin{sample_vertices} \anchor PMP_sample_vertices
+Parameter used in `sample_triangle_mesh()` to indicate if triangle vertices should
+be copied in the output iterator.
+\n
+\b Type : `bool` \n
+\b Default value is `true`
+\cgalNPEnd
+
+\cgalNPBegin{sample_faces} \anchor PMP_sample_faces
+Parameter used in `sample_triangle_mesh()` to indicate if the interior of faces
+should be considered for the sampling.
+\n
+\b Type : `bool` \n
+\b Default value is `true`
+\cgalNPEnd
+
+\cgalNPBegin{number_of_points_on_faces} \anchor PMP_number_of_points_on_faces
+Parameter used in `sample_triangle_mesh()` to set the number of points picked
+using the random uniform method on faces.
+\n
+\b Type : `std::size_t` \n
+\b Default value is `0`
+\cgalNPEnd
+
+\cgalNPBegin{number_of_points_on_edges} \anchor PMP_number_of_points_on_edges
+Parameter used in `sample_triangle_mesh()` to set the number of points picked
+using the random uniform method on edges.
+\n
+\b Type : `std::size_t` \n
+\b Default value is `0`
+\cgalNPEnd
+
+\cgalNPBegin{number_of_points_per_face} \anchor PMP_number_of_points_per_face
+Parameter used in `sample_triangle_mesh()` to set the number of points picked
+per face using the Monte-Carlo method.
+\n
+\b Type : `std::size_t` \n
+\b Default value is `0`
+\cgalNPEnd
+
+\cgalNPBegin{number_of_points_per_edge} \anchor PMP_number_of_points_per_edge
+Parameter used in `sample_triangle_mesh()` to set the number of points picked
+per edge using the Monte-Carlo method.
+\n
+\b Type : `std::size_t` \n
+\b Default value is `0`
+\cgalNPEnd
+
+\cgalNPBegin{grid_spacing} \anchor PMP_grid_spacing
+Parameter used in `sample_triangle_mesh()` to set the grid spacing when using
+the grid sampling method.
+\n
+\b Type : `double` \n
+\b Default value is `0`
+\cgalNPEnd
+
+\cgalNPBegin{number_of_points_per_area_unit} \anchor PMP_number_of_points_per_area_unit
+Parameter used in `sample_triangle_mesh()` to set the number of points per
+area unit to be picked up in faces for the random uniform sampling and
+Monte-Carlo methods.
+\n
+\b Type : `double` \n
+\b Default value is `0`
+\cgalNPEnd
+
+\cgalNPBegin{number_of_points_per_distance_unit} \anchor PMP_number_of_points_per_distance_unit
+Parameter used in `sample_triangle_mesh()` to set the number of points per
+distance unit to be picked up on edges for the random uniform sampling and
+Monte-Carlo methods.
+\n
+\b Type : `double` \n
+\b Default value is `0`
+\cgalNPEnd
 
 \cgalNPTableEnd
 

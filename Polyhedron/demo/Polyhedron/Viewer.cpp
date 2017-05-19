@@ -75,6 +75,7 @@ public:
   void showDistance(QPoint);
   qglviewer::Vec APoint;
   qglviewer::Vec BPoint;
+  qglviewer::Vec offset;
   bool is_d_pressed;
   /*!
    * \brief makeArrow creates an arrow and stores it in a struct of vectors.
@@ -108,6 +109,7 @@ Viewer::Viewer(QWidget* parent, bool antialiasing)
   d->inFastDrawing = true;
   d->inDrawWithNames = false;
   d->shader_programs.resize(NB_OF_PROGRAMS);
+  d->offset = qglviewer::Vec(0,0,0);
   textRenderer = new TextRenderer();
   connect( textRenderer, SIGNAL(sendMessage(QString,int)),
            this, SLOT(printMessage(QString,int)) );
@@ -569,12 +571,12 @@ void Viewer::postSelection(const QPoint& pixel)
 {
   Q_EMIT selected(this->selectedName());
   bool found = false;
-  qglviewer::Vec point = camera()->pointUnderPixel(pixel, found);
+  qglviewer::Vec point = camera()->pointUnderPixel(pixel, found) - d->offset;
   if(found) {
     Q_EMIT selectedPoint(point.x,
                        point.y,
                        point.z);
-    const qglviewer::Vec orig = camera()->position();
+    const qglviewer::Vec orig = camera()->position() - d->offset;
     const qglviewer::Vec dir = point - orig;
     Q_EMIT selectionRay(orig.x, orig.y, orig.z,
                       dir.x, dir.y, dir.z);
@@ -681,6 +683,8 @@ void Viewer::attribBuffers(int program_name) const {
     case PROGRAM_WITH_TEXTURE:
     case PROGRAM_CUTPLANE_SPHERES:
     case PROGRAM_SPHERES:
+    case PROGRAM_C3T3_TETS:
+    case PROGRAM_FLAT:
         program->setUniformValue("light_pos", position);
         program->setUniformValue("light_diff",diffuse);
         program->setUniformValue("light_spec", specular);
@@ -697,6 +701,8 @@ void Viewer::attribBuffers(int program_name) const {
     case PROGRAM_INSTANCED:
     case PROGRAM_CUTPLANE_SPHERES:
     case PROGRAM_SPHERES:
+    case PROGRAM_C3T3_TETS:
+    case PROGRAM_FLAT:
       program->setUniformValue("mv_matrix", mv_mat);
       break;
     case PROGRAM_WITHOUT_LIGHT:
@@ -727,8 +733,8 @@ void Viewer::beginSelection(const QPoint &point)
 void Viewer::endSelection(const QPoint&)
 {
     glDisable(GL_SCISSOR_TEST);
-    //redraw thetrue scene for the glReadPixel in postSelection();
-    update();
+    //redraw the true scene for the glReadPixel in postSelection();
+    d->draw_aux(false, this);
 }
 
 void Viewer_impl::makeArrow(double R, int prec, qglviewer::Vec from, qglviewer::Vec to, qglviewer::Vec color, Viewer_impl::AxisData &data)
@@ -1086,289 +1092,81 @@ void Viewer::resizeGL(int w, int h)
     d->rendering_program.release();
 
 }
+QOpenGLShaderProgram* Viewer::declare_program(int name,
+                                      const char* v_shader,
+                                      const char* f_shader) const
+{
+  // workaround constness issues in Qt
+  Viewer* viewer = const_cast<Viewer*>(this);
 
+  if(d->shader_programs[name])
+  {
+    return d->shader_programs[name];
+  }
+
+  else
+  {
+
+    QOpenGLShaderProgram *program = new QOpenGLShaderProgram(viewer);
+    if(!program->addShaderFromSourceFile(QOpenGLShader::Vertex,v_shader))
+    {
+      std::cerr<<"adding vertex shader FAILED"<<std::endl;
+    }
+    if(!program->addShaderFromSourceFile(QOpenGLShader::Fragment,f_shader))
+    {
+      std::cerr<<"adding fragment shader FAILED"<<std::endl;
+    }
+    program->bindAttributeLocation("colors", 1);
+    program->link();
+    d->shader_programs[name] = program;
+    return program;
+  }
+}
 QOpenGLShaderProgram* Viewer::getShaderProgram(int name) const
 {
-    // workaround constness issues in Qt
-    Viewer* viewer = const_cast<Viewer*>(this);
-
     switch(name)
     {
-    /// @TODO: factorize this code   
     case PROGRAM_C3T3:
-        if(d->shader_programs[PROGRAM_C3T3])
-        {
-            return d->shader_programs[PROGRAM_C3T3];
-        }
-
-        else
-        {
-
-            QOpenGLShaderProgram *program = new QOpenGLShaderProgram(viewer);
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Vertex,":/cgal/Polyhedron_3/resources/shader_c3t3.v"))
-            {
-                std::cerr<<"adding vertex shader FAILED"<<std::endl;
-            }
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Fragment,":/cgal/Polyhedron_3/resources/shader_c3t3.f"))
-            {
-                std::cerr<<"adding fragment shader FAILED"<<std::endl;
-            }
-            program->bindAttributeLocation("colors", 1);
-            program->link();
-            d->shader_programs[PROGRAM_C3T3] = program;
-            return program;
-        }
+      return declare_program(name, ":/cgal/Polyhedron_3/resources/shader_c3t3.v" , ":/cgal/Polyhedron_3/resources/shader_c3t3.f");
         break;
     case PROGRAM_C3T3_EDGES:
-        if(d->shader_programs[PROGRAM_C3T3_EDGES])
-        {
-            return d->shader_programs[PROGRAM_C3T3_EDGES];
-        }
-
-        else
-        {
-
-            QOpenGLShaderProgram *program = new QOpenGLShaderProgram(viewer);
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Vertex,":/cgal/Polyhedron_3/resources/shader_c3t3_edges.v"))
-            {
-                std::cerr<<"adding vertex shader FAILED"<<std::endl;
-            }
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Fragment,":/cgal/Polyhedron_3/resources/shader_c3t3_edges.f"))
-            {
-                std::cerr<<"adding fragment shader FAILED"<<std::endl;
-            }
-            program->bindAttributeLocation("colors", 1);
-            program->link();
-            d->shader_programs[PROGRAM_C3T3_EDGES] = program;
-            return program;
-        }
+      return declare_program(name, ":/cgal/Polyhedron_3/resources/shader_c3t3_edges.v" , ":/cgal/Polyhedron_3/resources/shader_c3t3_edges.f");
         break;
     case PROGRAM_WITH_LIGHT:
-        if(d->shader_programs[PROGRAM_WITH_LIGHT])
-        {
-            return d->shader_programs[PROGRAM_WITH_LIGHT];
-        }
-
-        else
-        {
-
-            QOpenGLShaderProgram *program = new QOpenGLShaderProgram(viewer);
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Vertex,":/cgal/Polyhedron_3/resources/shader_with_light.v"))
-            {
-                std::cerr<<"adding vertex shader FAILED"<<std::endl;
-            }
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Fragment,":/cgal/Polyhedron_3/resources/shader_with_light.f"))
-            {
-                std::cerr<<"adding fragment shader FAILED"<<std::endl;
-            }
-            program->bindAttributeLocation("colors", 1);
-            program->link();
-            d->shader_programs[PROGRAM_WITH_LIGHT] = program;
-            return program;
-        }
+      return declare_program(name, ":/cgal/Polyhedron_3/resources/shader_with_light.v" , ":/cgal/Polyhedron_3/resources/shader_with_light.f");
         break;
     case PROGRAM_WITHOUT_LIGHT:
-        if( d->shader_programs[PROGRAM_WITHOUT_LIGHT])
-        {
-            return d->shader_programs[PROGRAM_WITHOUT_LIGHT];
-        }
-        else
-        {
-            QOpenGLShaderProgram *program = new QOpenGLShaderProgram(viewer);
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Vertex,":/cgal/Polyhedron_3/resources/shader_without_light.v"))
-            {
-                std::cerr<<"adding vertex shader FAILED"<<std::endl;
-            }
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Fragment,":/cgal/Polyhedron_3/resources/shader_without_light.f"))
-            {
-                std::cerr<<"adding fragment shader FAILED"<<std::endl;
-            }
-            program->bindAttributeLocation("colors", 1);
-            program->link();
-            d->shader_programs[PROGRAM_WITHOUT_LIGHT] = program;
-            return program;
-        }
-        break;
+      return declare_program(name, ":/cgal/Polyhedron_3/resources/shader_without_light.v" , ":/cgal/Polyhedron_3/resources/shader_without_light.f");
+       break;
     case PROGRAM_NO_SELECTION:
-        if( d->shader_programs[PROGRAM_NO_SELECTION])
-        {
-            return d->shader_programs[PROGRAM_NO_SELECTION];
-        }
-        else
-        {
-            QOpenGLShaderProgram *program = new QOpenGLShaderProgram(viewer);
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Vertex,":/cgal/Polyhedron_3/resources/shader_without_light.v"))
-            {
-                std::cerr<<"adding vertex shader FAILED"<<std::endl;
-            }
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Fragment,":/cgal/Polyhedron_3/resources/shader_no_light_no_selection.f"))
-            {
-                std::cerr<<"adding fragment shader FAILED"<<std::endl;
-            }
-            program->bindAttributeLocation("colors", 1);
-            program->link();
-            d->shader_programs[PROGRAM_NO_SELECTION] = program;
-            return program;
-        }
+      return declare_program(name, ":/cgal/Polyhedron_3/resources/shader_without_light.v" , ":/cgal/Polyhedron_3/resources/shader_no_light_no_selection.f");
         break;
     case PROGRAM_WITH_TEXTURE:
-        if( d->shader_programs[PROGRAM_WITH_TEXTURE])
-        {
-            return d->shader_programs[PROGRAM_WITH_TEXTURE];
-        }
-        else
-        {
-            QOpenGLShaderProgram *program = new QOpenGLShaderProgram(viewer);
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Vertex,":/cgal/Polyhedron_3/resources/shader_with_texture.v"))
-            {
-                std::cerr<<"adding vertex shader FAILED"<<std::endl;
-            }
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Fragment,":/cgal/Polyhedron_3/resources/shader_with_texture.f"))
-            {
-                std::cerr<<"adding fragment shader FAILED"<<std::endl;
-            }
-            program->bindAttributeLocation("color_facets", 1);
-            program->link();
-            d->shader_programs[PROGRAM_WITH_TEXTURE] = program;
-            return program;
-        }
-        break;
+      return declare_program(name, ":/cgal/Polyhedron_3/resources/shader_with_texture.v" , ":/cgal/Polyhedron_3/resources/shader_with_texture.f");
+      break;
     case PROGRAM_PLANE_TWO_FACES:
-        if(d->shader_programs[PROGRAM_PLANE_TWO_FACES])
-        {
-            return d->shader_programs[PROGRAM_PLANE_TWO_FACES];
-        }
-
-        else
-        {
-
-            QOpenGLShaderProgram *program = new QOpenGLShaderProgram(viewer);
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Vertex,":/cgal/Polyhedron_3/resources/shader_without_light.v"))
-            {
-                std::cerr<<"adding vertex shader FAILED"<<std::endl;
-            }
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Fragment,":/cgal/Polyhedron_3/resources/shader_plane_two_faces.f"))
-            {
-                std::cerr<<"adding fragment shader FAILED"<<std::endl;
-            }
-            program->link();
-            d->shader_programs[PROGRAM_PLANE_TWO_FACES] = program;
-            return program;
-        }
+      return declare_program(name, ":/cgal/Polyhedron_3/resources/shader_without_light.v" , ":/cgal/Polyhedron_3/resources/shader_plane_two_faces.f");
         break;
-
     case PROGRAM_WITH_TEXTURED_EDGES:
-        if( d->shader_programs[PROGRAM_WITH_TEXTURED_EDGES])
-        {
-            return d->shader_programs[PROGRAM_WITH_TEXTURED_EDGES];
-        }
-        else
-        {
-            QOpenGLShaderProgram *program = new QOpenGLShaderProgram(viewer);
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Vertex,":/cgal/Polyhedron_3/resources/shader_with_textured_edges.v" ))
-            {
-                std::cerr<<"adding vertex shader FAILED"<<std::endl;
-            }
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Fragment,":/cgal/Polyhedron_3/resources/shader_with_textured_edges.f" ))
-            {
-                std::cerr<<"adding fragment shader FAILED"<<std::endl;
-            }
-            program->bindAttributeLocation("color_lines", 1);
-            program->link();
-            d->shader_programs[PROGRAM_WITH_TEXTURED_EDGES] = program;
-            return program;
-
-        }
+      return declare_program(name, ":/cgal/Polyhedron_3/resources/shader_with_textured_edges.v" , ":/cgal/Polyhedron_3/resources/shader_with_textured_edges.f");
         break;
     case PROGRAM_INSTANCED:
-        if( d->shader_programs[PROGRAM_INSTANCED])
-        {
-            return d->shader_programs[PROGRAM_INSTANCED];
-        }
-        else
-        {
-            QOpenGLShaderProgram *program = new QOpenGLShaderProgram(viewer);
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Vertex,":/cgal/Polyhedron_3/resources/shader_instanced.v" ))
-            {
-                std::cerr<<"adding vertex shader FAILED"<<std::endl;
-            }
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Fragment,":/cgal/Polyhedron_3/resources/shader_with_light.f" ))
-            {
-                std::cerr<<"adding fragment shader FAILED"<<std::endl;
-            }
-            program->bindAttributeLocation("colors", 1);
-            program->link();
-            d->shader_programs[PROGRAM_INSTANCED] = program;
-            return program;
-
-        }
+      return declare_program(name, ":/cgal/Polyhedron_3/resources/shader_instanced.v" , ":/cgal/Polyhedron_3/resources/shader_with_light.f");
         break;
     case PROGRAM_INSTANCED_WIRE:
-        if( d->shader_programs[PROGRAM_INSTANCED_WIRE])
-        {
-            return d->shader_programs[PROGRAM_INSTANCED_WIRE];
-        }
-        else
-        {
-            QOpenGLShaderProgram *program = new QOpenGLShaderProgram(viewer);
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Vertex,":/cgal/Polyhedron_3/resources/shader_instanced.v" ))
-            {
-                std::cerr<<"adding vertex shader FAILED"<<std::endl;
-            }
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Fragment,":/cgal/Polyhedron_3/resources/shader_without_light.f" ))
-            {
-                std::cerr<<"adding fragment shader FAILED"<<std::endl;
-            }
-            program->bindAttributeLocation("colors", 1);
-            program->link();
-            d->shader_programs[PROGRAM_INSTANCED_WIRE] = program;
-            return program;
-
-        }
+      return declare_program(name, ":/cgal/Polyhedron_3/resources/shader_instanced.v" , ":/cgal/Polyhedron_3/resources/shader_without_light.f");
         break;
     case PROGRAM_CUTPLANE_SPHERES:
-      if( d->shader_programs[PROGRAM_CUTPLANE_SPHERES])
-      {
-          return d->shader_programs[PROGRAM_CUTPLANE_SPHERES];
-      }
-      else
-      {
-        QOpenGLShaderProgram *program = new QOpenGLShaderProgram(viewer);
-        if(!program->addShaderFromSourceFile(QOpenGLShader::Vertex,":/cgal/Polyhedron_3/resources/shader_c3t3_spheres.v"))
-        {
-            std::cerr<<"adding vertex shader FAILED"<<std::endl;
-        }
-        if(!program->addShaderFromSourceFile(QOpenGLShader::Fragment,":/cgal/Polyhedron_3/resources/shader_c3t3.f" ))
-        {
-            std::cerr<<"adding fragment shader FAILED"<<std::endl;
-        }
-        program->bindAttributeLocation("colors", 1);
-        program->link();
-        d->shader_programs[PROGRAM_CUTPLANE_SPHERES] = program;
-        return program;
-      }
+      return declare_program(name, ":/cgal/Polyhedron_3/resources/shader_c3t3_spheres.v" , ":/cgal/Polyhedron_3/resources/shader_c3t3.f");
+     break;
+    case PROGRAM_C3T3_TETS:
+      return declare_program(name, ":/cgal/Polyhedron_3/resources/shader_c3t3_tets.v" , ":/cgal/Polyhedron_3/resources/shader_with_light.f");
+     break;
     case PROGRAM_SPHERES:
-        if( d->shader_programs[PROGRAM_SPHERES])
-        {
-            return d->shader_programs[PROGRAM_SPHERES];
-        }
-        else
-        {
-            QOpenGLShaderProgram *program = new QOpenGLShaderProgram(viewer);
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Vertex,":/cgal/Polyhedron_3/resources/shader_spheres.v" ))
-            {
-                std::cerr<<"adding vertex shader FAILED"<<std::endl;
-            }
-            if(!program->addShaderFromSourceFile(QOpenGLShader::Fragment,":/cgal/Polyhedron_3/resources/shader_with_light.f" ))
-            {
-                std::cerr<<"adding fragment shader FAILED"<<std::endl;
-            }
-            program->bindAttributeLocation("colors", 1);
-            program->link();
-            d->shader_programs[PROGRAM_SPHERES] = program;
-            return program;
-
-        }
+      return declare_program(name, ":/cgal/Polyhedron_3/resources/shader_spheres.v" , ":/cgal/Polyhedron_3/resources/shader_with_light.f");
+      break;
+    case PROGRAM_FLAT:
+      return declare_program(name, ":/cgal/Polyhedron_3/resources/shader_with_light.v", ":/cgal/Polyhedron_3/resources/shader_flat.f");
       break;
 
     default:
@@ -1509,9 +1307,9 @@ void Viewer_impl::showDistance(QPoint pixel)
         double dist = std::sqrt((BPoint.x-APoint.x)*(BPoint.x-APoint.x) + (BPoint.y-APoint.y)*(BPoint.y-APoint.y) + (BPoint.z-APoint.z)*(BPoint.z-APoint.z));
         QFont font;
         font.setBold(true);
-        TextItem *ACoord = new TextItem(APoint.x, APoint.y, APoint.z,QString("A(%1,%2,%3)").arg(APoint.x).arg(APoint.y).arg(APoint.z), true, font, Qt::red, true);
+        TextItem *ACoord = new TextItem(APoint.x, APoint.y, APoint.z,QString("A(%1,%2,%3)").arg(APoint.x-offset.x).arg(APoint.y-offset.y).arg(APoint.z-offset.z), true, font, Qt::red, true);
         distance_text.append(ACoord);
-        TextItem *BCoord = new TextItem(BPoint.x, BPoint.y, BPoint.z,QString("B(%1,%2,%3)").arg(BPoint.x).arg(BPoint.y).arg(BPoint.z), true, font, Qt::red, true);
+        TextItem *BCoord = new TextItem(BPoint.x, BPoint.y, BPoint.z,QString("B(%1,%2,%3)").arg(BPoint.x-offset.x).arg(BPoint.y-offset.y).arg(BPoint.z-offset.z), true, font, Qt::red, true);
         distance_text.append(BCoord);
         qglviewer::Vec centerPoint = 0.5*(BPoint+APoint);
         TextItem *centerCoord = new TextItem(centerPoint.x, centerPoint.y, centerPoint.z,QString(" distance: %1").arg(dist), true, font, Qt::red, true);
@@ -1520,12 +1318,12 @@ void Viewer_impl::showDistance(QPoint pixel)
         Q_FOREACH(TextItem* ti, distance_text)
           viewer->textRenderer->addText(ti);
         Q_EMIT(viewer->sendMessage(QString("First point : A(%1,%2,%3), second point : B(%4,%5,%6), distance between them : %7")
-                  .arg(APoint.x)
-                  .arg(APoint.y)
-                  .arg(APoint.z)
-                  .arg(BPoint.x)
-                  .arg(BPoint.y)
-                  .arg(BPoint.z)
+                  .arg(APoint.x-offset.x)
+                  .arg(APoint.y-offset.y)
+                  .arg(APoint.z-offset.z)
+                  .arg(BPoint.x-offset.x)
+                  .arg(BPoint.y-offset.y)
+                  .arg(BPoint.z-offset.z)
                   .arg(dist)));
     }
 
@@ -1762,6 +1560,31 @@ void Viewer_impl::sendSnapshotToClipboard(Viewer *viewer)
 #endif
     delete snap;
   }
+}
+void Viewer::SetOrthoProjection(bool b)
+{
+  if(b)
+    camera()->setType(qglviewer::Camera::ORTHOGRAPHIC);
+  else
+    camera()->setType(qglviewer::Camera::PERSPECTIVE);
 
+
+
+}
+
+void Viewer::setOffset(qglviewer::Vec offset){ d->offset = offset; }
+qglviewer::Vec Viewer::offset()const { return d->offset; }
+void Viewer::setSceneBoundingBox(const qglviewer::Vec &min, const qglviewer::Vec &max)
+{
+  QGLViewer::setSceneBoundingBox(min+d->offset, max+d->offset);
+}
+
+void Viewer::updateIds(CGAL::Three::Scene_item * item)
+{
+  //all ids are computed when they are displayed the first time.
+  //Calling printPrimitiveIds twice hides and show the ids again, so they are re-computed.
+
+  d->scene->updatePrimitiveIds(this, item);
+  d->scene->updatePrimitiveIds(this, item);
 }
  #include "Viewer.moc"

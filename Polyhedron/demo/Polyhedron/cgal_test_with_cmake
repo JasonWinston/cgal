@@ -26,7 +26,7 @@ configure()
 {
   echo "Configuring... "
   
-  if eval 'cmake "$CMAKE_GENERATOR" -DRUNNING_CGAL_AUTO_TEST=TRUE  \
+  if eval 'cmake --no-warn-unused-cli "$CMAKE_GENERATOR" -DRUNNING_CGAL_AUTO_TEST=TRUE  \
                                      -DCGAL_DIR="$CGAL_DIR" \
                                      .' ; then
                                      
@@ -131,6 +131,7 @@ corefinement_plugin \
 create_bbox_mesh_plugin \
 cut_plugin \
 detect_sharp_edges_plugin \
+distance_plugin \
 edit_polyhedron_plugin \
 fairing_plugin \
 features_detection_plugin \
@@ -138,7 +139,7 @@ gocad_plugin \
 hole_filling_plugin \
 hole_filling_polyline_plugin \
 inside_out_plugin \
-intersection_plugin \
+surface_intersection_plugin \
 io_image_plugin \
 io_implicit_function_plugin \
 isotropic_remeshing_plugin \

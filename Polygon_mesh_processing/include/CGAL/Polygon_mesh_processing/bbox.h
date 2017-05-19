@@ -21,6 +21,9 @@
 #ifndef CGAL_POLYGON_MESH_PROCESSING_BOUNDING_BOX_H
 #define CGAL_POLYGON_MESH_PROCESSING_BOUNDING_BOX_H
 
+#include <CGAL/license/Polygon_mesh_processing/miscellaneous.h>
+
+
 #include <CGAL/Bbox_3.h>
 
 #include <boost/graph/graph_traits.hpp>
@@ -59,17 +62,17 @@ namespace CGAL {
     * @return a bounding box of `pmesh`
     */
     template<typename PolygonMesh, typename CGAL_PMP_NP_TEMPLATE_PARAMETERS>
-    CGAL::Bbox_3 bbox_3(const PolygonMesh& pmesh,
-                        const CGAL_PMP_NP_CLASS& np)
+    CGAL::Bbox_3 bbox(const PolygonMesh& pmesh,
+                      const CGAL_PMP_NP_CLASS& np)
     {
       using boost::choose_param;
       using boost::get_param;
       typename GetVertexPointMap<PolygonMesh, CGAL_PMP_NP_CLASS>::const_type
-        vpm = choose_param(get_param(np, vertex_point),
+        vpm = choose_param(get_param(np, internal_np::vertex_point),
                            get_const_property_map(CGAL::vertex_point, pmesh));
 
       typedef typename GetGeomTraits<PolygonMesh, CGAL_PMP_NP_CLASS>::type GT;
-      GT gt = choose_param(get_param(np, geom_traits), GT());
+      GT gt = choose_param(get_param(np, internal_np::geom_traits), GT());
       typename GT::Construct_bbox_3 get_bbox = gt.construct_bbox_3_object();
 
       typedef typename boost::graph_traits<PolygonMesh>::halfedge_descriptor halfedge_descriptor;
@@ -109,18 +112,18 @@ namespace CGAL {
     * @return a bounding box of `pmesh`
     */
     template<typename PolygonMesh, typename NamedParameters>
-    CGAL::Bbox_3 vertex_bbox_3(typename boost::graph_traits<PolygonMesh>::vertex_descriptor vd,
-                               const PolygonMesh& pmesh,
-                               const NamedParameters& np)
+    CGAL::Bbox_3 vertex_bbox(typename boost::graph_traits<PolygonMesh>::vertex_descriptor vd,
+                             const PolygonMesh& pmesh,
+                             const NamedParameters& np)
     {
       using boost::choose_param;
       using boost::get_param;
       typename GetVertexPointMap<PolygonMesh, NamedParameters>::const_type
-        vpm = choose_param(get_param(np, vertex_point),
+        vpm = choose_param(get_param(np, internal_np::vertex_point),
                            get_const_property_map(CGAL::vertex_point, pmesh));
 
       typedef typename GetGeomTraits<PolygonMesh, NamedParameters>::type GT;
-      GT gt = choose_param(get_param(np, geom_traits), GT());
+      GT gt = choose_param(get_param(np, internal_np::geom_traits), GT());
       typename GT::Construct_bbox_3 get_bbox = gt.construct_bbox_3_object();
 
       return get_bbox( get(vpm, vd) );
@@ -152,18 +155,18 @@ namespace CGAL {
     * @return a bounding box of `pmesh`
     */
     template<typename PolygonMesh, typename NamedParameters>
-    CGAL::Bbox_3 edge_bbox_3(typename boost::graph_traits<PolygonMesh>::edge_descriptor ed,
-                             const PolygonMesh& pmesh,
-                             const NamedParameters& np)
+    CGAL::Bbox_3 edge_bbox(typename boost::graph_traits<PolygonMesh>::edge_descriptor ed,
+                           const PolygonMesh& pmesh,
+                           const NamedParameters& np)
     {
       using boost::choose_param;
       using boost::get_param;
       typename GetVertexPointMap<PolygonMesh, NamedParameters>::const_type
-        vpm = choose_param(get_param(np, vertex_point),
+        vpm = choose_param(get_param(np, internal_np::vertex_point),
                            get_const_property_map(CGAL::vertex_point, pmesh));
 
       typedef typename GetGeomTraits<PolygonMesh, NamedParameters>::type GT;
-      GT gt = choose_param(get_param(np, geom_traits), GT());
+      GT gt = choose_param(get_param(np, internal_np::geom_traits), GT());
       typename GT::Construct_bbox_3 get_bbox = gt.construct_bbox_3_object();
 
       return get_bbox( get(vpm, source(ed, pmesh)) ) +
@@ -196,18 +199,18 @@ namespace CGAL {
     * @return a bounding box of `pmesh`
     */
     template<typename PolygonMesh, typename NamedParameters>
-    CGAL::Bbox_3 face_bbox_3(typename boost::graph_traits<PolygonMesh>::face_descriptor fd,
-                             const PolygonMesh& pmesh,
-                             const NamedParameters& np)
+    CGAL::Bbox_3 face_bbox(typename boost::graph_traits<PolygonMesh>::face_descriptor fd,
+                           const PolygonMesh& pmesh,
+                           const NamedParameters& np)
     {
       using boost::choose_param;
       using boost::get_param;
       typename GetVertexPointMap<PolygonMesh, NamedParameters>::const_type
-        vpm = choose_param(get_param(np, vertex_point),
+        vpm = choose_param(get_param(np, internal_np::vertex_point),
                            get_const_property_map(CGAL::vertex_point, pmesh));
 
       typedef typename GetGeomTraits<PolygonMesh, NamedParameters>::type GT;
-      GT gt = choose_param(get_param(np, geom_traits), GT());
+      GT gt = choose_param(get_param(np, internal_np::geom_traits), GT());
       typename GT::Construct_bbox_3 get_bbox = gt.construct_bbox_3_object();
 
       typedef typename boost::graph_traits<PolygonMesh>::halfedge_descriptor halfedge_descriptor;
@@ -222,34 +225,53 @@ namespace CGAL {
     }
 
     template<typename PolygonMesh>
-    CGAL::Bbox_3 vertex_bbox_3(typename boost::graph_traits<PolygonMesh>::vertex_descriptor vd,
+    CGAL::Bbox_3 vertex_bbox(typename boost::graph_traits<PolygonMesh>::vertex_descriptor vd,
                                const PolygonMesh& pmesh)
     {
-      return vertex_bbox_3(vd, pmesh,
+      return vertex_bbox(vd, pmesh,
         CGAL::Polygon_mesh_processing::parameters::all_default());
     }
     template<typename PolygonMesh>
-    CGAL::Bbox_3 edge_bbox_3(typename boost::graph_traits<PolygonMesh>::edge_descriptor ed,
+    CGAL::Bbox_3 edge_bbox(typename boost::graph_traits<PolygonMesh>::edge_descriptor ed,
                              const PolygonMesh& pmesh)
     {
-      return edge_bbox_3(ed, pmesh,
+      return edge_bbox(ed, pmesh,
         CGAL::Polygon_mesh_processing::parameters::all_default());
     }
     template<typename PolygonMesh>
-    CGAL::Bbox_3 face_bbox_3(typename boost::graph_traits<PolygonMesh>::face_descriptor fd,
+    CGAL::Bbox_3 face_bbox(typename boost::graph_traits<PolygonMesh>::face_descriptor fd,
                              const PolygonMesh& pmesh)
     {
-      return face_bbox_3(fd, pmesh,
+      return face_bbox(fd, pmesh,
         CGAL::Polygon_mesh_processing::parameters::all_default());
     }
 
     template<typename PolygonMesh>
-    CGAL::Bbox_3 bbox_3(const PolygonMesh& pmesh)
+    CGAL::Bbox_3 bbox(const PolygonMesh& pmesh)
     {
-      return bbox_3(pmesh,
+      return bbox(pmesh,
         CGAL::Polygon_mesh_processing::parameters::all_default());
     }
 
+    // deprecated function
+    #ifndef CGAL_NO_DEPRECATED_CODE
+    /*!
+    * \ingroup PkgPolygonMeshProcessing
+    * \deprecated This function is deprecated since \cgal 4.10, `CGAL::Polygon_mesh_processing::bbox()` should be used instead.
+    */
+    template<typename PolygonMesh, typename CGAL_PMP_NP_TEMPLATE_PARAMETERS>
+    CGAL_DEPRECATED CGAL::Bbox_3 bbox_3(const PolygonMesh& pmesh,
+                        const CGAL_PMP_NP_CLASS& np)
+    {
+      return bbox(pmesh, np);
+    }
+
+    template<typename PolygonMesh>
+    CGAL_DEPRECATED CGAL::Bbox_3 bbox_3(const PolygonMesh& pmesh)
+    {
+      return bbox(pmesh);
+    }
+    #endif // CGAL_NO_DEPRECATED_CODE
   }
 }
 

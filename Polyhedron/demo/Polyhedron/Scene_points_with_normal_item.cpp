@@ -1,3 +1,5 @@
+#define CGAL_data_type float
+#define CGAL_GL_data_type GL_FLOAT
 #include "Scene_points_with_normal_item.h"
 #include "Polyhedron_type.h"
 #include <CGAL/Polygon_mesh_processing/compute_normal.h>
@@ -24,7 +26,7 @@
 #include <algorithm>
 #include <boost/array.hpp>
 
-const std::size_t limit_fast_drawing = 300000; //arbitraty large valu
+const std::size_t limit_fast_drawing = 300000; //arbitraty large value
 
 struct Scene_points_with_normal_item_priv
 {
@@ -64,6 +66,7 @@ struct Scene_points_with_normal_item_priv
     nb_selected_points = 0;
     nb_lines = 0;
     Polyhedron::Vertex_iterator v;
+    m_points->add_normal_map();
     for (v = const_cast<Polyhedron&>(input_mesh).vertices_begin();
          v != const_cast<Polyhedron&>(input_mesh).vertices_end(); v++)
     {
@@ -81,8 +84,11 @@ struct Scene_points_with_normal_item_priv
   }
   ~Scene_points_with_normal_item_priv()
   {
-    Q_ASSERT(m_points != NULL);
-    delete m_points; m_points = NULL;
+    if(m_points)
+    {
+      delete m_points;
+      m_points = NULL;
+    }
     delete normal_Slider;
     delete point_Slider;
   }
@@ -111,13 +117,13 @@ struct Scene_points_with_normal_item_priv
   QSlider* normal_Slider;
   QSlider* point_Slider;
   mutable bool is_point_slider_moving;
-  mutable std::vector<double> positions_lines;
-  mutable std::vector<double> positions_points;
-  mutable std::vector<double> positions_selected_points;
-  mutable std::vector<double> normals;
-  mutable std::vector<double> positions_normals;
-  mutable std::vector<double> positions_selected_normals;
-  mutable std::vector<double> colors_points;
+  mutable std::vector<CGAL_data_type> positions_lines;
+  mutable std::vector<CGAL_data_type> positions_points;
+  mutable std::vector<CGAL_data_type> positions_selected_points;
+  mutable std::vector<CGAL_data_type> normals;
+  mutable std::vector<CGAL_data_type> positions_normals;
+  mutable std::vector<CGAL_data_type> positions_selected_normals;
+  mutable std::vector<CGAL_data_type> colors_points;
   mutable std::size_t nb_points;
   mutable std::size_t nb_selected_points;
   mutable std::size_t nb_lines;
@@ -185,25 +191,25 @@ void Scene_points_with_normal_item_priv::initializeBuffers(CGAL::Three::Viewer_i
         item->vaos[Edges]->bind();
         item->buffers[Edges_vertices].bind();
         item->buffers[Edges_vertices].allocate(positions_lines.data(),
-                            static_cast<int>(positions_lines.size()*sizeof(double)));
+                            static_cast<int>(positions_lines.size()*sizeof(CGAL_data_type)));
         program->enableAttributeArray("vertex");
-        program->setAttributeBuffer("vertex",GL_DOUBLE,0,3);
+        program->setAttributeBuffer("vertex",CGAL_GL_data_type,0,3);
         item->buffers[Edges_vertices].release();
 
         if (!(colors_points.empty()))
           {
             item->buffers[Points_colors].bind();
             item->buffers[Points_colors].allocate (colors_points.data(),
-                                                   static_cast<int>(colors_points.size()*sizeof(double)));
+                                                   static_cast<int>(colors_points.size()*sizeof(CGAL_data_type)));
             program->enableAttributeArray("colors");
-            program->setAttributeBuffer("colors",GL_DOUBLE,0,3);
+            program->setAttributeBuffer("colors",CGAL_GL_data_type,0,3);
             item->buffers[Points_colors].release();
           }
 
         item->vaos[Edges]->release();
         nb_lines = positions_lines.size();
         positions_lines.resize(0);
-        std::vector<double>(positions_lines).swap(positions_lines);
+        std::vector<CGAL_data_type>(positions_lines).swap(positions_lines);
         program->release();
     }
     //vao for the points
@@ -217,39 +223,38 @@ void Scene_points_with_normal_item_priv::initializeBuffers(CGAL::Three::Viewer_i
         item->vaos[ThePoints]->bind();
         item->buffers[Points_vertices].bind();
         item->buffers[Points_vertices].allocate(positions_points.data(),
-                            static_cast<int>(positions_points.size()*sizeof(double)));
+                            static_cast<int>(positions_points.size()*sizeof(CGAL_data_type)));
         program->enableAttributeArray("vertex");
-        program->setAttributeBuffer("vertex",GL_DOUBLE,0,3);
+        program->setAttributeBuffer("vertex",CGAL_GL_data_type,0,3);
         item->buffers[Points_vertices].release();
 
         if(item->has_normals() && !(m_points->has_colors()))
         {
           item->buffers[Points_normals].bind();
           item->buffers[Points_normals].allocate(positions_normals.data(),
-                                          static_cast<int>(positions_normals.size()*sizeof(double)));
+                                          static_cast<int>(positions_normals.size()*sizeof(CGAL_data_type)));
           program->enableAttributeArray("normals");
-          program->setAttributeBuffer("normals",GL_DOUBLE,0,3);
+          program->setAttributeBuffer("normals",CGAL_GL_data_type,0,3);
           item->buffers[Points_normals].release();
           positions_normals.resize(0);
-          std::vector<double>(positions_normals).swap(positions_normals);
+          std::vector<CGAL_data_type>(positions_normals).swap(positions_normals);
         }
-        
         if (!(colors_points.empty()))
           {
             item->buffers[Points_colors].bind();
             item->buffers[Points_colors].allocate (colors_points.data(),
-                                                   static_cast<int>(colors_points.size()*sizeof(double)));
+                                                   static_cast<int>(colors_points.size()*sizeof(CGAL_data_type)));
             program->enableAttributeArray("colors");
-            program->setAttributeBuffer("colors",GL_DOUBLE,0,3,6*sizeof(double));
+            program->setAttributeBuffer("colors",CGAL_GL_data_type,0,3,6*sizeof(CGAL_data_type));
             item->buffers[Points_colors].release();
             colors_points.resize(0);
-            std::vector<double>(colors_points).swap(colors_points);
+            std::vector<CGAL_data_type>(colors_points).swap(colors_points);
           }
 
         item->vaos[ThePoints]->release();
         nb_points = positions_points.size();
         positions_points.resize(0);
-        std::vector<double>(positions_points).swap(positions_points);
+        std::vector<CGAL_data_type>(positions_points).swap(positions_points);
         program->release();
     }
     //vao for the selected points
@@ -258,32 +263,30 @@ void Scene_points_with_normal_item_priv::initializeBuffers(CGAL::Three::Viewer_i
           program = item->getShaderProgram(Scene_points_with_normal_item::PROGRAM_WITH_LIGHT, viewer);
         else
           program = item->getShaderProgram(Scene_points_with_normal_item::PROGRAM_NO_SELECTION, viewer);
-
         program->bind();
-
         item->vaos[Selected_points]->bind();
         item->buffers[Selected_points_vertices].bind();
         item->buffers[Selected_points_vertices].allocate(positions_selected_points.data(),
-                            static_cast<int>(positions_selected_points.size()*sizeof(double)));
+                            static_cast<int>(positions_selected_points.size()*sizeof(CGAL_data_type)));
         program->enableAttributeArray("vertex");
-        program->setAttributeBuffer("vertex",GL_DOUBLE,0,3);
+        program->setAttributeBuffer("vertex",CGAL_GL_data_type,0,3);
         item->buffers[Selected_points_vertices].release();
 
         if(item->has_normals())
         {
           item->buffers[Selected_points_normals].bind();
           item->buffers[Selected_points_normals].allocate(positions_selected_normals.data(),
-                                          static_cast<int>(positions_selected_normals.size()*sizeof(double)));
+                                          static_cast<int>(positions_selected_normals.size()*sizeof(CGAL_data_type)));
           program->enableAttributeArray("normals");
-          program->setAttributeBuffer("normals",GL_DOUBLE,0,3);
+          program->setAttributeBuffer("normals",CGAL_GL_data_type,0,3);
           item->buffers[Selected_points_normals].release();
           positions_selected_normals.resize(0);
-          std::vector<double>(positions_selected_normals).swap(positions_selected_normals);
+          std::vector<CGAL_data_type>(positions_selected_normals).swap(positions_selected_normals);
         }
         item->vaos[Selected_points]->release();
         nb_selected_points = positions_selected_points.size();
         positions_selected_points.resize(0);
-        std::vector<double>(positions_selected_points).swap(positions_selected_points);
+        std::vector<CGAL_data_type>(positions_selected_points).swap(positions_selected_points);
         program->release();
     }
     item->are_buffers_filled = true;
@@ -291,6 +294,7 @@ void Scene_points_with_normal_item_priv::initializeBuffers(CGAL::Three::Viewer_i
 
 void Scene_points_with_normal_item_priv::compute_normals_and_vertices() const
 {
+    const qglviewer::Vec offset = static_cast<CGAL::Three::Viewer_interface*>(QGLViewer::QGLViewerPool().first())->offset();
     QApplication::setOverrideCursor(Qt::WaitCursor);
     positions_points.resize(0);
     positions_lines.resize(0);
@@ -309,30 +313,32 @@ void Scene_points_with_normal_item_priv::compute_normals_and_vertices() const
     if (m_points->nb_selected_points() != 0)
       std::random_shuffle (m_points->first_selected(), m_points->end());
     
+
     //The points
     {
         // The *non-selected* points
       for (Point_set::const_iterator it = m_points->begin();
            it != m_points->first_selected(); ++ it)
 	{
-	  positions_points.push_back(m_points->point(*it).x());
-	  positions_points.push_back(m_points->point(*it).y());
-	  positions_points.push_back(m_points->point(*it).z());
+          positions_points.push_back(m_points->point(*it).x()+offset.x);
+          positions_points.push_back(m_points->point(*it).y()+offset.y);
+          positions_points.push_back(m_points->point(*it).z()+offset.z);
 	}
 
         // Draw *selected* points
       for (Point_set::const_iterator it = m_points->first_selected();
            it != m_points->end(); ++ it)
 	{
-	  positions_selected_points.push_back(m_points->point(*it).x());
-	  positions_selected_points.push_back(m_points->point(*it).y());
-	  positions_selected_points.push_back(m_points->point(*it).z());
+          positions_selected_points.push_back(m_points->point(*it).x()+offset.x);
+          positions_selected_points.push_back(m_points->point(*it).y()+offset.y);
+          positions_selected_points.push_back(m_points->point(*it).z()+offset.z);
 	}
     }
 
     //The lines
     if (item->has_normals())
     {
+        positions_lines.reserve(m_points->size() * 6);
         positions_normals.reserve((m_points->size() - m_points->nb_selected_points()) * 3);
         positions_selected_normals.reserve(m_points->nb_selected_points() * 3);
         
@@ -351,36 +357,36 @@ void Scene_points_with_normal_item_priv::compute_normals_and_vertices() const
 
         double normal_length = (std::min)(average_spacing, std::sqrt(region_of_interest.squared_radius() / 1000.));
         double length_factor = 5.0/100*normal_Slider->value();
-        for (Point_set_3<Kernel>::const_iterator it = m_points->begin(); it != m_points->first_selected(); it++)
+        for (Point_set_3<Kernel>::const_iterator it = m_points->begin(); it != m_points->first_selected(); ++it)
 	  {
 	    const Kernel::Point_3& p = m_points->point(*it);
 	    const Kernel::Vector_3& n = m_points->normal(*it);
             Point_set_3<Kernel>::Point q = p + normal_length * length_factor* n;
-	    positions_lines.push_back(p.x());
-	    positions_lines.push_back(p.y());
-	    positions_lines.push_back(p.z());
+            positions_lines.push_back(p.x()+offset.x);
+            positions_lines.push_back(p.y()+offset.y);
+            positions_lines.push_back(p.z()+offset.z);
 
-	    positions_lines.push_back(q.x());
-	    positions_lines.push_back(q.y());
-	    positions_lines.push_back(q.z());
+            positions_lines.push_back(q.x()+offset.x);
+            positions_lines.push_back(q.y()+offset.y);
+            positions_lines.push_back(q.z()+offset.z);
 
 
             positions_normals.push_back(n.x());
             positions_normals.push_back(n.y());
             positions_normals.push_back(n.z());
 	  }
-        for (Point_set_3<Kernel>::const_iterator it = m_points->first_selected(); it != m_points->end(); it++)
+        for (Point_set_3<Kernel>::const_iterator it = m_points->first_selected(); it != m_points->end(); ++it)
           {
 	    const Kernel::Point_3& p = m_points->point(*it);
 	    const Kernel::Vector_3& n = m_points->normal(*it);
             Point_set_3<Kernel>::Point q = p + normal_length * length_factor* n;
-            positions_lines.push_back(p.x());
-            positions_lines.push_back(p.y());
-            positions_lines.push_back(p.z());
+            positions_lines.push_back(p.x()+offset.x);
+            positions_lines.push_back(p.y()+offset.y);
+            positions_lines.push_back(p.z()+offset.z);
 
-            positions_lines.push_back(q.x());
-            positions_lines.push_back(q.y());
-            positions_lines.push_back(q.z());
+            positions_lines.push_back(q.x()+offset.x);
+            positions_lines.push_back(q.y()+offset.y);
+            positions_lines.push_back(q.z()+offset.z);
 
 
             positions_selected_normals.push_back(n.x());
@@ -391,16 +397,16 @@ void Scene_points_with_normal_item_priv::compute_normals_and_vertices() const
     //The colors
     if (m_points->has_colors())
     {
-        colors_points.reserve((m_points->size() - m_points->nb_selected_points()) * 3);
+        colors_points.reserve((m_points->size() - m_points->nb_selected_points()) * 6);
 
-        for (Point_set_3<Kernel>::const_iterator it = m_points->begin(); it != m_points->end(); it++)
+        for (Point_set_3<Kernel>::const_iterator it = m_points->begin(); it != m_points->end(); ++it)
 	  {
-            colors_points.push_back ((double)(m_points->red(*it) / 255.));
-            colors_points.push_back ((double)(m_points->green(*it) / 255.));
-            colors_points.push_back ((double)(m_points->blue(*it) / 255.));
-            colors_points.push_back ((double)(m_points->red(*it) / 255.));
-            colors_points.push_back ((double)(m_points->green(*it) / 255.));
-            colors_points.push_back ((double)(m_points->blue(*it) / 255.));
+            colors_points.push_back (m_points->red(*it));
+            colors_points.push_back (m_points->green(*it));
+            colors_points.push_back (m_points->blue(*it));
+            colors_points.push_back (m_points->red(*it));
+            colors_points.push_back (m_points->green(*it));
+            colors_points.push_back (m_points->blue(*it));
 	  }
     }
         
@@ -464,9 +470,28 @@ void Scene_points_with_normal_item::resetSelection()
 void Scene_points_with_normal_item::selectDuplicates()
 {
   std::set<Kernel::Point_3> unique_points;
-  for (Point_set::iterator ptit = d->m_points->begin(); ptit!= d->m_points->end();++ptit )
+  std::vector<Point_set::Index> unselected, selected;
+  for (Point_set::iterator ptit = d->m_points->begin(); ptit!= d->m_points->end(); ++ ptit)
     if ( !unique_points.insert(d->m_points->point(*ptit)).second)
-      d->m_points->select(ptit);
+      selected.push_back (*ptit);
+    else
+      unselected.push_back (*ptit);
+  
+  for (std::size_t i = 0; i < unselected.size(); ++ i)
+    *(d->m_points->begin() + i) = unselected[i];
+  for (std::size_t i = 0; i < selected.size(); ++ i)
+    *(d->m_points->begin() + (unselected.size() + i)) = selected[i];
+
+  if (selected.empty ())
+  {
+    d->m_points->unselect_all();
+  }
+  else
+  {
+    d->m_points->set_first_selected
+      (d->m_points->begin() + unselected.size());
+  } 
+
   invalidateOpenGLBuffers();
   Q_EMIT itemChanged();
 }
@@ -570,10 +595,11 @@ bool Scene_points_with_normal_item::supportsRenderingMode(RenderingMode m) const
   switch ( m )
   {
   case Points:
+    return true;
   case ShadedPoints:
   case PointsPlusNormals:
   case Splatting:
-    return true;
+    return has_normals();
 
   default:
     return false;
@@ -582,16 +608,19 @@ bool Scene_points_with_normal_item::supportsRenderingMode(RenderingMode m) const
 
 void Scene_points_with_normal_item::drawSplats(CGAL::Three::Viewer_interface* viewer) const
 {
+  const qglviewer::Vec v_offset = static_cast<CGAL::Three::Viewer_interface*>(QGLViewer::QGLViewerPool().first())->offset();
+ Kernel::Vector_3 offset(v_offset.x, v_offset.y, v_offset.z);
+
    // TODO add support for selection
    viewer->glBegin(GL_POINTS);
    if (d->m_points->has_colors())
      for ( Point_set_3<Kernel>::const_iterator it = d->m_points->begin(); it != d->m_points->end(); it++)
        {
-         const Point_set::Point& p = d->m_points->point (*it);
+         Point_set::Point p = d->m_points->point (*it) + offset;
          const Point_set::Vector& n = d->m_points->normal (*it);
-         viewer->glColor4d((double)(d->m_points->red(*it)) / 255.,
-                           (double)(d->m_points->green(*it)) / 255.,
-                           (double)(d->m_points->blue(*it)) / 255.,
+         viewer->glColor4d(d->m_points->red(*it),
+                           d->m_points->green(*it),
+                           d->m_points->blue(*it),
                            1.0);
          viewer->glNormal3dv(&n.x());
          viewer->glMultiTexCoord1d(GL_TEXTURE2, d->m_points->radius(*it));
@@ -601,7 +630,7 @@ void Scene_points_with_normal_item::drawSplats(CGAL::Three::Viewer_interface* vi
    else
      for ( Point_set_3<Kernel>::const_iterator it = d->m_points->begin(); it != d->m_points->end(); it++)
        {
-         const Point_set::Point& p = d->m_points->point (*it);
+         const Point_set::Point p = d->m_points->point (*it) + offset;
          const Point_set::Vector& n = d->m_points->normal (*it);
          viewer->glNormal3dv(&n.x());
          viewer->glMultiTexCoord1d(GL_TEXTURE2, d->m_points->radius(*it));
@@ -636,7 +665,6 @@ void Scene_points_with_normal_item::drawPoints(CGAL::Three::Viewer_interface* vi
 {
     if(!are_buffers_filled)
         d->initializeBuffers(viewer);
-
     GLfloat point_size;
     viewer->glGetFloatv(GL_POINT_SIZE, &point_size);
     viewer->glPointSize(d->point_Slider->value());
@@ -644,7 +672,6 @@ void Scene_points_with_normal_item::drawPoints(CGAL::Three::Viewer_interface* vi
     if ((viewer->inFastDrawing () || d->isPointSliderMoving())
         &&((d->nb_points + d->nb_selected_points)/3 > limit_fast_drawing)) // arbitrary large value
       ratio_displayed = 3 * limit_fast_drawing / (double)(d->nb_points + d->nb_selected_points);
-
     vaos[Scene_points_with_normal_item_priv::ThePoints]->bind();
     if(has_normals() && renderingMode() == ShadedPoints)
     {
@@ -661,12 +688,10 @@ void Scene_points_with_normal_item::drawPoints(CGAL::Three::Viewer_interface* vi
       d->program->setAttributeValue("colors", this->color());
     if(renderingMode() != ShadedPoints)
       d->program->setAttributeValue("normals", QVector3D(0,0,0));
-
     viewer->glDrawArrays(GL_POINTS, 0,
                          static_cast<GLsizei>(((std::size_t)(ratio_displayed * d->nb_points)/3)));
     vaos[Scene_points_with_normal_item_priv::ThePoints]->release();
     d->program->release();
-
     vaos[Scene_points_with_normal_item_priv::Selected_points]->bind();
     if(has_normals() && renderingMode() == ShadedPoints)
     {
@@ -738,7 +763,6 @@ void Scene_points_with_normal_item::computes_local_spacing(int k)
 
   // Compute the radius of each point = (distance max to k nearest neighbors)/2.
   {
-    d->m_points->test();
     int i=0;
     for (Point_set::iterator it=d->m_points->begin(); it!=d->m_points->end(); ++it, ++i)
     {
@@ -849,3 +873,32 @@ void Scene_points_with_normal_item::pointSliderReleased()
   d->is_point_slider_moving = false;
 }
 
+void Scene_points_with_normal_item::copyProperties(Scene_item *item)
+{
+  Scene_points_with_normal_item* point_item = qobject_cast<Scene_points_with_normal_item*>(item);
+  if(!point_item)
+    return;
+  d->point_Slider->setValue(point_item->getPointSliderValue());
+  if(has_normals())
+    d->normal_Slider->setValue(point_item->getNormalSliderValue());
+}
+
+int Scene_points_with_normal_item::getNormalSliderValue()
+{
+  return d->normal_Slider->value();
+}
+
+int Scene_points_with_normal_item::getPointSliderValue()
+{
+  return d->point_Slider->value();
+}
+
+void Scene_points_with_normal_item::itemAboutToBeDestroyed(Scene_item *item)
+{
+  Scene_item::itemAboutToBeDestroyed(item);
+  if(d && d->m_points && item == this)
+  {
+    delete d->m_points;
+    d->m_points = NULL;
+  }
+}
